@@ -1,0 +1,55 @@
+{
+  "name": "BI-Corp Dashboard",
+  "short_name": "BI-Corp",
+  "description": "Panel de control de ventas, mermas y métricas en tiempo real",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f9fafb",
+  "theme_color": "#4338ca",
+  "lang": "es-MX",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icon",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/apple-icon",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Semáforo",
+      "short_name": "Semáforo",
+      "description": "Ver KPIs críticos del día",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icon", "sizes": "512x512" }]
+    },
+    {
+      "name": "Registrar Merma",
+      "short_name": "Merma",
+      "description": "Captura rápida de merma",
+      "url": "/carga",
+      "icons": [{ "src": "/icon", "sizes": "512x512" }]
+    },
+    {
+      "name": "Retención",
+      "short_name": "Retención",
+      "description": "Clientes en riesgo",
+      "url": "/retencion",
+      "icons": [{ "src": "/icon", "sizes": "512x512" }]
+    }
+  ]
+}
