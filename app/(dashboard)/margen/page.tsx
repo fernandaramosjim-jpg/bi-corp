@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getMargenProductos, getVentasPorDia, getVentasPorHora } from "@/lib/supabase";
 import { DollarSign, Star, TrendingUp, TrendingDown, Clock } from "lucide-react";
 

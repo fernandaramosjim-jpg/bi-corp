@@ -9,6 +9,7 @@ import {
   Zap,
   DollarSign,
   FolderUp,
+  Bot,
 } from "lucide-react";
 
 const NAV = [
@@ -54,6 +55,12 @@ const NAV = [
         href: "/carga",
         icon: FolderUp,
         sub: "Excel, CSV y captura rápida",
+      },
+      {
+        label: "Agente IA",
+        href: "/agente",
+        icon: Bot,
+        sub: "Análisis conversacional",
       },
     ],
   },

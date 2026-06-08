@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getProductosBasic, getClientesBasic } from "@/lib/supabase";
 import CentroCargar from "./CentroCargar";
 import { FolderUp } from "lucide-react";

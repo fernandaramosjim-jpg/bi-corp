@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getVentasMes, getTopProductosMes, getTopClientesMes } from "@/lib/supabase";
 import { Zap, Trophy, Package, Users, TrendingUp } from "lucide-react";
 

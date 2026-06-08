@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getClientesEnRiesgo, getPareto } from "@/lib/supabase";
 import { Users, PhoneCall, MessageCircle, AlertTriangle, ShieldAlert, TrendingUp } from "lucide-react";
 
