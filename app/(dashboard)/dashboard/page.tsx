@@ -69,10 +69,10 @@ function SemaforoCard({
 
 export default async function SemaforoPage() {
   const [mermasData, ventasMes, desabasto, enRiesgo] = await Promise.all([
-    getMermas(),
-    getVentasMes(),
-    getDesabastoCritico(),
-    getClientesEnRiesgo(30),
+    getMermas().catch(() => ({ rows: [], totalCosto: 0 })),
+    getVentasMes().catch(() => ({ total: 0, count: 0, unidades: 0 })),
+    getDesabastoCritico().catch(() => []),
+    getClientesEnRiesgo(30).catch(() => []),
   ]);
 
   const { rows: mermaRows, totalCosto: totalMerma } = mermasData;
@@ -138,7 +138,7 @@ export default async function SemaforoPage() {
                   <p className="truncate text-xs font-medium text-gray-700">{nombre}</p>
                   <p className="text-[10px] text-gray-400 truncate">{r.motivo}</p>
                 </div>
-                <span className="flex-shrink-0 text-xs font-bold text-rose-600">{fmt(r.costo_perdida)}</span>
+                <span className="flex-shrink-0 text-xs font-bold text-rose-600">{fmt(r.costo_perdida ?? 0)}</span>
               </div>
             );
           })}
@@ -188,7 +188,7 @@ export default async function SemaforoPage() {
                   <p className="text-[10px] text-gray-400">{dias} días inactivo</p>
                 </div>
                 <span className="ml-2 flex-shrink-0 text-xs font-bold text-amber-600">
-                  {fmtK(c.ticket_promedio)}
+                  {fmtK(c.ticket_promedio ?? 0)}
                 </span>
               </div>
             );

@@ -44,15 +44,15 @@ function BarraVertical({
 
 export default async function MargenPage() {
   const [productos, ventasDia, ventasHora] = await Promise.all([
-    getMargenProductos(),
-    getVentasPorDia(),
-    getVentasPorHora(),
+    getMargenProductos().catch(() => []),
+    getVentasPorDia().catch(() => []),
+    getVentasPorHora().catch(() => []),
   ]);
 
   // Mejor día y hora
   const conVentasDia = ventasDia.filter((d) => d.total > 0);
-  const mejorDia = conVentasDia.reduce((a, b) => (a.total > b.total ? a : b), conVentasDia[0]);
-  const mejorHora = ventasHora.reduce((a, b) => (a.total > b.total ? a : b), ventasHora[0]);
+  const mejorDia = conVentasDia.length > 0 ? conVentasDia.reduce((a, b) => (a.total > b.total ? a : b)) : null;
+  const mejorHora = ventasHora.length > 0 ? ventasHora.reduce((a, b) => (a.total > b.total ? a : b)) : null;
 
   const maxDia = mejorDia?.total ?? 1;
   const maxHora = mejorHora?.total ?? 1;

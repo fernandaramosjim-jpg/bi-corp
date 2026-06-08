@@ -6,8 +6,8 @@ import { FolderUp } from "lucide-react";
 
 export default async function CargaPage() {
   const [productos, clientes] = await Promise.all([
-    getProductosBasic(),
-    getClientesBasic(),
+    getProductosBasic().catch(() => []),
+    getClientesBasic().catch(() => []),
   ]);
 
   return (

@@ -88,9 +88,9 @@ function LeaderRow({ nombre, total, maxTotal, rank, sub }: { nombre: string; tot
 
 export default async function ComercialPage() {
   const [ventasMes, topProductos, topClientes] = await Promise.all([
-    getVentasMes(),
-    getTopProductosMes(),
-    getTopClientesMes(),
+    getVentasMes().catch(() => ({ total: 0, count: 0, unidades: 0 })),
+    getTopProductosMes().catch(() => []),
+    getTopClientesMes().catch(() => []),
   ]);
 
   const { total, count } = ventasMes;

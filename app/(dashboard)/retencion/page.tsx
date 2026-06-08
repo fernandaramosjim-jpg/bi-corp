@@ -23,7 +23,10 @@ const BAR_BG = ["bg-indigo-50","bg-violet-50","bg-sky-50","bg-amber-50","bg-rose
 const TEXT = ["text-indigo-700","text-violet-700","text-sky-700","text-amber-700","text-rose-700"];
 
 export default async function RetencionPage() {
-  const [enRiesgo, pareto] = await Promise.all([getClientesEnRiesgo(35), getPareto()]);
+  const [enRiesgo, pareto] = await Promise.all([
+    getClientesEnRiesgo(35).catch(() => []),
+    getPareto().catch(() => []),
+  ]);
 
   const top3pct = pareto.slice(0, 3).reduce((s, c) => s + c.pct, 0);
   const riesgo = top3pct > 70 ? "alto" : top3pct > 50 ? "medio" : "bajo";
@@ -65,7 +68,7 @@ export default async function RetencionPage() {
           ) : (
             <div className="divide-y divide-gray-50">
               {enRiesgo.map((c) => {
-                const dias = diasDesde(c.ultima_fecha_compra);
+                const dias = c.ultima_fecha_compra ? diasDesde(c.ultima_fecha_compra) : 0;
                 const u = urgencia(dias);
                 const borderColor = dias > 60 ? "border-l-rose-400" : dias > 45 ? "border-l-amber-400" : "border-l-yellow-400";
                 const textColor   = dias > 60 ? "text-rose-700"   : dias > 45 ? "text-amber-700"   : "text-yellow-700";
@@ -84,7 +87,7 @@ export default async function RetencionPage() {
                         </span>
                       </div>
                       <p className="text-xs text-gray-500">
-                        {c.contacto} · Ticket prom. {fmtK(c.ticket_promedio)}
+                        {c.contacto ?? "—"} · Ticket prom. {fmtK(c.ticket_promedio ?? 0)}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
