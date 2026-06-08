@@ -1,4 +1,5 @@
 import { Sidebar } from "@/components/Sidebar";
+import { InstallBanner } from "@/components/InstallBanner";
 
 export default function DashboardLayout({
   children,
@@ -16,6 +17,9 @@ export default function DashboardLayout({
       <div className="flex-1 lg:pl-60 min-w-0">
         {children}
       </div>
+
+      {/* Banner de instalación PWA (móvil) */}
+      <InstallBanner />
     </div>
   );
 }
