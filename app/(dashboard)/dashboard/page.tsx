@@ -6,6 +6,8 @@ import {
   getDesabastoCritico,
   getClientesEnRiesgo,
 } from "@/lib/supabase";
+import { getPeriodoRange, periodoLabel } from "@/lib/date-range";
+import { DateFilter } from "@/components/DateFilter";
 import {
   AlertTriangle, CheckCircle2, Package, Wallet,
   TrendingUp, TrendingDown, Flame, Target,
@@ -67,10 +69,19 @@ function SemaforoCard({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function SemaforoPage() {
+export default async function SemaforoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
+  const periodo = typeof sp.periodo === "string" ? sp.periodo : "mes_actual";
+  const rango = getPeriodoRange(periodo);
+  const pLabel = periodoLabel(periodo);
+
   const [mermasData, ventasMes, desabasto, enRiesgo] = await Promise.all([
-    getMermas().catch(() => ({ rows: [], totalCosto: 0 })),
-    getVentasMes().catch(() => ({ total: 0, count: 0, unidades: 0 })),
+    getMermas(rango).catch(() => ({ rows: [], totalCosto: 0 })),
+    getVentasMes(rango).catch(() => ({ total: 0, count: 0, unidades: 0 })),
     getDesabastoCritico().catch(() => []),
     getClientesEnRiesgo(30).catch(() => []),
   ]);
@@ -88,46 +99,50 @@ export default async function SemaforoPage() {
   const nivelClientes: Nivel = enRiesgo.length === 0 ? "verde" : enRiesgo.length <= 2 ? "amarillo" : "rojo";
   const alertasActivas = [nivelMerma, nivelDesabasto, nivelClientes].filter((n) => n !== "verde").length;
 
-  const hoy     = new Date();
-  const hora    = hoy.getHours();
-  const saludo  = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
-  const mesLabel = hoy.toLocaleString("es-MX", { month: "long", year: "numeric" });
+  const hoy    = new Date();
+  const hora   = hoy.getHours();
+  const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
 
   return (
     <div className="px-6 py-8 lg:px-10">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "var(--font-syne)" }}>
             {saludo}, Fernanda 👋
           </h1>
-          <p className="text-sm text-gray-400 capitalize">{mesLabel} · Semáforo de control</p>
+          <p className="text-sm text-gray-400 capitalize">Semáforo de control · {pLabel}</p>
         </div>
         {alertasActivas > 0 ? (
-          <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2">
+          <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 flex-shrink-0">
             <AlertTriangle className="h-4 w-4 text-rose-500" />
             <span className="text-sm font-semibold text-rose-700">
               {alertasActivas} alerta{alertasActivas > 1 ? "s" : ""} activa{alertasActivas > 1 ? "s" : ""}
             </span>
           </div>
         ) : (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2">
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 flex-shrink-0">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
             <span className="text-sm font-semibold text-emerald-700">Todo en orden hoy</span>
           </div>
         )}
       </div>
 
+      {/* ── Filtro de periodo ────────────────────────────────────────────── */}
+      <div className="mb-6">
+        <DateFilter periodo={periodo} />
+      </div>
+
       {/* ── KPI 1, 2, 3: Semáforo ───────────────────────────────────────── */}
       <div className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
 
-        {/* KPI 1 — Mermas: DATO REAL de tabla mermas.costo_perdida */}
+        {/* KPI 1 — Mermas */}
         <SemaforoCard
           nivel={nivelMerma}
           titulo="Fuga por merma"
           valor={fmt(totalMerma)}
-          detalle={`${mermaRows.length} registro${mermaRows.length !== 1 ? "s" : ""} de pérdida acumulados`}
+          detalle={`${mermaRows.length} registro${mermaRows.length !== 1 ? "s" : ""} de pérdida · ${pLabel}`}
           icon={Flame}
         >
           {mermaRows.slice(0, 3).map((r: any) => {
@@ -144,7 +159,7 @@ export default async function SemaforoPage() {
           })}
         </SemaforoCard>
 
-        {/* KPI 2 — Desabasto: DATO REAL de tabla productos */}
+        {/* KPI 2 — Desabasto */}
         <SemaforoCard
           nivel={nivelDesabasto}
           titulo="Desabasto crítico"
@@ -169,7 +184,7 @@ export default async function SemaforoPage() {
           ))}
         </SemaforoCard>
 
-        {/* KPI 3 — Clientes en riesgo: DATO REAL de tabla clientes */}
+        {/* KPI 3 — Clientes en riesgo */}
         <SemaforoCard
           nivel={nivelClientes}
           titulo="Clientes sin compra +30 días"

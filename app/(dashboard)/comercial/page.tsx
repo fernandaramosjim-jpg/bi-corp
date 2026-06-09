@@ -1,6 +1,8 @@
 export const dynamic = 'force-dynamic';
 
 import { getVentasMes, getTopProductosMes, getTopClientesMes } from "@/lib/supabase";
+import { getPeriodoRange, periodoLabel, diasEnRango } from "@/lib/date-range";
+import { DateFilter } from "@/components/DateFilter";
 import { Zap, Trophy, Package, Users, TrendingUp } from "lucide-react";
 
 function fmtK(n: number) {
@@ -13,8 +15,6 @@ function fmt(n: number) {
 }
 
 // ─── Velocímetro SVG ──────────────────────────────────────────────────────────
-// Semicirc superior: centro (100,100) r=80, va de (20,100) counter-clockwise a (180,100)
-// Punto en pct%: α = π*(1-pct/100), ex = 100+80cos(α), ey = 100-80sin(α)
 
 function Velocimetro({ pct }: { pct: number }) {
   const p = Math.min(Math.max(pct, 0), 100);
@@ -86,40 +86,57 @@ function LeaderRow({ nombre, total, maxTotal, rank, sub }: { nombre: string; tot
   );
 }
 
-export default async function ComercialPage() {
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default async function ComercialPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
+  const periodo = typeof sp.periodo === "string" ? sp.periodo : "mes_actual";
+  const rango = getPeriodoRange(periodo);
+  const pLabel = periodoLabel(periodo);
+
   const [ventasMes, topProductos, topClientes] = await Promise.all([
-    getVentasMes().catch(() => ({ total: 0, count: 0, unidades: 0 })),
-    getTopProductosMes().catch(() => []),
-    getTopClientesMes().catch(() => []),
+    getVentasMes(rango).catch(() => ({ total: 0, count: 0, unidades: 0 })),
+    getTopProductosMes(rango).catch(() => []),
+    getTopClientesMes(rango).catch(() => []),
   ]);
 
   const { total, count } = ventasMes;
 
+  // ── Cálculos de velocidad ─────────────────────────────────────────────────
   const hoy = new Date();
-  const diaActual = hoy.getDate();
-  const diasDelMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
-  const diasRestantes = diasDelMes - diaActual;
-  const tasaDiaria = diaActual > 0 ? total / diaActual : 0;
-  const proyeccion = tasaDiaria * diasDelMes;
+  // Días efectivos transcurridos en el periodo seleccionado
+  const esDiaActual = periodo === "mes_actual";
+  const diaActual   = hoy.getDate();
+  const diasDelMes  = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+  const diasEfectivos = esDiaActual ? diaActual : diasEnRango(rango);
+  const diasRestantes = esDiaActual ? diasDelMes - diaActual : 0;
+  const tasaDiaria    = diasEfectivos > 0 ? total / diasEfectivos : 0;
+  const proyeccion    = esDiaActual ? tasaDiaria * diasDelMes : total;
 
-  // % del mes transcurrido como "cumplimiento de ritmo"
-  const pctRitmo = diasDelMes > 0 ? Math.round((diaActual / diasDelMes) * 100) : 0;
-  // % real vendido vs proyección
-  const pctVendido = proyeccion > 0 ? Math.round((total / proyeccion) * 100) : 0;
-  // Para el velocímetro: cómo vamos vs el ritmo esperado
-  const pctVelocimetro = pctRitmo > 0 ? Math.round((pctVendido / pctRitmo) * 100) : 0;
+  // Para el velocímetro: % vendido vs proyección esperada al cierre
+  const pctVendido     = proyeccion > 0 ? Math.round((total / proyeccion) * 100) : 0;
 
   const maxProd = topProductos[0]?.total ?? 1;
-  const maxCli = topClientes[0]?.total ?? 1;
-  const mesLabel = hoy.toLocaleString("es-MX", { month: "long", year: "numeric" });
+  const maxCli  = topClientes[0]?.total  ?? 1;
 
   return (
     <div className="px-6 py-8 lg:px-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "var(--font-syne)" }}>
-          Termómetro Comercial
-        </h1>
-        <p className="text-sm text-gray-400">Velocidad y rendimiento del negocio · {mesLabel}</p>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "var(--font-syne)" }}>
+            Termómetro Comercial
+          </h1>
+          <p className="text-sm text-gray-400">Velocidad y rendimiento del negocio · {pLabel}</p>
+        </div>
+      </div>
+
+      {/* ── Filtro de periodo ────────────────────────────────────────────── */}
+      <div className="mb-6">
+        <DateFilter periodo={periodo} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -145,10 +162,10 @@ export default async function ComercialPage() {
 
           <div className="grid grid-cols-2 gap-3 mb-4">
             {[
-              { label: "Promedio por día", value: fmtK(tasaDiaria) },
-              { label: "Días restantes",  value: `${diasRestantes} días` },
-              { label: "Total acumulado", value: fmtK(total) },
-              { label: "Proyección cierre", value: fmtK(proyeccion) },
+              { label: "Promedio por día",   value: fmtK(tasaDiaria) },
+              { label: esDiaActual ? "Días restantes" : "Días analizados", value: esDiaActual ? `${diasRestantes} días` : `${diasEfectivos} días` },
+              { label: "Total acumulado",    value: fmtK(total) },
+              { label: esDiaActual ? "Proyección cierre" : "Total periodo", value: fmtK(proyeccion) },
             ].map((item) => (
               <div key={item.label} className="rounded-xl bg-gray-50 p-3">
                 <p className="text-[10px] uppercase tracking-wide text-gray-400">{item.label}</p>
@@ -177,12 +194,12 @@ export default async function ComercialPage() {
             <div className="flex items-center gap-2 mb-4">
               <Package className="h-4 w-4 text-violet-500" />
               <h2 className="text-sm font-bold text-gray-800" style={{ fontFamily: "var(--font-syne)" }}>
-                Top productos del mes
+                Top productos · {pLabel}
               </h2>
               <span className="ml-auto text-xs text-gray-400">{count} ventas</span>
             </div>
             {topProductos.length === 0 ? (
-              <p className="text-sm text-gray-300 text-center py-6">Sin ventas este mes.</p>
+              <p className="text-sm text-gray-300 text-center py-6">Sin ventas en este periodo.</p>
             ) : (
               <div className="space-y-2">
                 {topProductos.slice(0, 4).map((p, i) => (
@@ -201,12 +218,12 @@ export default async function ComercialPage() {
             <div className="flex items-center gap-2 mb-4">
               <Users className="h-4 w-4 text-sky-500" />
               <h2 className="text-sm font-bold text-gray-800" style={{ fontFamily: "var(--font-syne)" }}>
-                Top clientes del mes
+                Top clientes · {pLabel}
               </h2>
               <span className="ml-auto text-xs text-gray-400">por volumen</span>
             </div>
             {topClientes.length === 0 ? (
-              <p className="text-sm text-gray-300 text-center py-6">Sin ventas este mes.</p>
+              <p className="text-sm text-gray-300 text-center py-6">Sin ventas en este periodo.</p>
             ) : (
               <div className="space-y-2">
                 {topClientes.slice(0, 4).map((c, i) => (
@@ -215,7 +232,7 @@ export default async function ComercialPage() {
               </div>
             )}
             <div className="mt-3 flex items-center justify-between rounded-xl bg-gray-50 px-4 py-2.5">
-              <span className="text-xs text-gray-500">Total del mes</span>
+              <span className="text-xs text-gray-500">Total {pLabel.toLowerCase()}</span>
               <span className="text-sm font-bold text-indigo-700">{fmt(total)}</span>
             </div>
           </div>

@@ -37,7 +37,9 @@ export type Producto = {
   precio_venta: number;
 };
 
-// ─── Helper de rango del mes actual ─────────────────────────────────────────
+// ─── Rango de fechas opcional ────────────────────────────────────────────────
+
+export type Rango = { from?: string; to?: string };
 
 function rangoMes() {
   const now = new Date();
@@ -50,11 +52,16 @@ function rangoMes() {
   };
 }
 
+function resolveRango(r?: Rango) {
+  if (r?.from && r?.to) return { primer: r.from, ultimo: r.to };
+  return rangoMes();
+}
+
 // ─── Queries ────────────────────────────────────────────────────────────────
 
-/** Total de ventas + conteo + unidades del mes actual */
-export async function getVentasMes() {
-  const { primer, ultimo } = rangoMes();
+/** Total de ventas + conteo + unidades en el rango dado (default: mes actual) */
+export async function getVentasMes(rango?: Rango) {
+  const { primer, ultimo } = resolveRango(rango);
   const { data, error } = await supabase
     .from("ventas")
     .select("monto_total, cantidad")
@@ -69,24 +76,24 @@ export async function getVentasMes() {
   };
 }
 
-/**
- * Mermas: suma costo_perdida de todos los registros.
- * Incluye detalle con JOIN a productos para mostrar el nombre.
- */
-export async function getMermas() {
-  const { data, error } = await supabase
+/** Mermas con JOIN a productos. Si se pasa rango, filtra por fecha_merma. */
+export async function getMermas(rango?: Rango) {
+  const from = rango?.from;
+  const to   = rango?.to;
+  const q = supabase
     .from("mermas")
     .select("id, producto_id, fecha_merma, cantidad_perdida, motivo, costo_perdida, productos(nombre)")
     .order("fecha_merma", { ascending: false });
+
+  const { data, error } = await (from && to ? q.gte("fecha_merma", from).lte("fecha_merma", to) : q);
   if (error) throw error;
   const rows = data ?? [];
-  const totalCosto = rows.reduce((s, r) => s + (r.costo_perdida ?? 0), 0);
-  return { rows, totalCosto };
+  return { rows, totalCosto: rows.reduce((s, r) => s + (r.costo_perdida ?? 0), 0) };
 }
 
 /**
  * Productos con desabasto crítico: stock_actual <= stock_minimo_critico.
- * Una sola query a la tabla productos — sin joins costosos.
+ * No depende de fecha — siempre refleja el estado actual.
  */
 export async function getDesabastoCritico() {
   const { data, error } = await supabase
@@ -103,7 +110,7 @@ export async function getDesabastoCritico() {
     );
 }
 
-/** Clientes que no han comprado en más de X días */
+/** Clientes que no han comprado en más de X días (relativo a hoy) */
 export async function getClientesEnRiesgo(dias = 30) {
   const fecha = new Date(Date.now() - dias * 86_400_000).toISOString().slice(0, 10);
   const { data, error } = await supabase
@@ -115,16 +122,20 @@ export async function getClientesEnRiesgo(dias = 30) {
   return (data ?? []) as Cliente[];
 }
 
-/** Clientes sin compra en +60 días (proxy cartera vencida) */
+/** Clientes sin compra en +60 días */
 export async function getCarteraVencida() {
   return getClientesEnRiesgo(60);
 }
 
-/** Top-5 clientes por volumen histórico de ventas (análisis Pareto) */
-export async function getPareto() {
-  const { data, error } = await supabase
+/** Top-5 clientes por volumen de ventas (default: histórico; opcional: rango) */
+export async function getPareto(rango?: Rango) {
+  const from = rango?.from;
+  const to   = rango?.to;
+  const q = supabase
     .from("ventas")
     .select("monto_total, cliente_id, clientes(nombre)");
+
+  const { data, error } = await (from && to ? q.gte("fecha_venta", from).lte("fecha_venta", to) : q);
   if (error) throw error;
 
   const map = new Map<number, { nombre: string; total: number }>();
@@ -143,9 +154,9 @@ export async function getPareto() {
   }));
 }
 
-/** Top productos del mes por monto total vendido */
-export async function getTopProductosMes() {
-  const { primer, ultimo } = rangoMes();
+/** Top productos por monto vendido en el rango dado (default: mes actual) */
+export async function getTopProductosMes(rango?: Rango) {
+  const { primer, ultimo } = resolveRango(rango);
   const { data, error } = await supabase
     .from("ventas")
     .select("producto_id, monto_total, cantidad, productos(nombre)")
@@ -167,9 +178,9 @@ export async function getTopProductosMes() {
   return Array.from(map.values()).sort((a, b) => b.total - a.total);
 }
 
-/** Top clientes del mes por monto total comprado */
-export async function getTopClientesMes() {
-  const { primer, ultimo } = rangoMes();
+/** Top clientes por monto comprado en el rango dado (default: mes actual) */
+export async function getTopClientesMes(rango?: Rango) {
+  const { primer, ultimo } = resolveRango(rango);
   const { data, error } = await supabase
     .from("ventas")
     .select("cliente_id, monto_total, clientes(nombre)")
@@ -187,13 +198,17 @@ export async function getTopClientesMes() {
   return Array.from(map.values()).sort((a, b) => b.total - a.total);
 }
 
-/** Ventas agrupadas por día de la semana (últimos 90 días) */
-export async function getVentasPorDia() {
-  const hace90 = new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10);
+/** Ventas agrupadas por día de semana en el rango dado (default: últimos 90 días) */
+export async function getVentasPorDia(rango?: Rango) {
+  const defaultFrom = new Date(Date.now() - 90 * 86_400_000).toISOString();
+  const from = rango?.from ?? defaultFrom;
+  const to   = rango?.to   ?? new Date().toISOString();
+
   const { data, error } = await supabase
     .from("ventas")
     .select("monto_total, cantidad, fecha_venta")
-    .gte("fecha_venta", hace90);
+    .gte("fecha_venta", from)
+    .lte("fecha_venta", to);
   if (error) throw error;
 
   const DIAS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
@@ -202,29 +217,31 @@ export async function getVentasPorDia() {
     const dow = new Date(v.fecha_venta).getDay();
     const prev = map.get(dow) ?? { total: 0, count: 0, unidades: 0 };
     map.set(dow, {
-      total: prev.total + (v.monto_total ?? 0),
-      count: prev.count + 1,
+      total:    prev.total    + (v.monto_total ?? 0),
+      count:    prev.count    + 1,
       unidades: prev.unidades + (v.cantidad ?? 0),
     });
   }
   return DIAS.map((dia, d) => ({
     dia,
-    total: map.get(d)?.total ?? 0,
-    count: map.get(d)?.count ?? 0,
+    total:    map.get(d)?.total    ?? 0,
+    count:    map.get(d)?.count    ?? 0,
     unidades: map.get(d)?.unidades ?? 0,
-    promedio: (map.get(d)?.count ?? 0) > 0
-      ? (map.get(d)!.total / map.get(d)!.count)
-      : 0,
+    promedio: (map.get(d)?.count ?? 0) > 0 ? (map.get(d)!.total / map.get(d)!.count) : 0,
   }));
 }
 
-/** Ventas agrupadas por hora del día (últimos 90 días, horas 6–22) */
-export async function getVentasPorHora() {
-  const hace90 = new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10);
+/** Ventas agrupadas por hora del día (horas 6-22) en el rango dado (default: últimos 90 días) */
+export async function getVentasPorHora(rango?: Rango) {
+  const defaultFrom = new Date(Date.now() - 90 * 86_400_000).toISOString();
+  const from = rango?.from ?? defaultFrom;
+  const to   = rango?.to   ?? new Date().toISOString();
+
   const { data, error } = await supabase
     .from("ventas")
     .select("monto_total, fecha_venta")
-    .gte("fecha_venta", hace90);
+    .gte("fecha_venta", from)
+    .lte("fecha_venta", to);
   if (error) throw error;
 
   const map = new Map<number, { total: number; count: number }>();
@@ -234,7 +251,7 @@ export async function getVentasPorHora() {
     map.set(h, { total: prev.total + (v.monto_total ?? 0), count: prev.count + 1 });
   }
   return Array.from({ length: 17 }, (_, i) => i + 6).map((h) => ({
-    hora: h,
+    hora:  h,
     label: h === 12 ? "12pm" : h < 12 ? `${h}am` : `${h - 12}pm`,
     total: map.get(h)?.total ?? 0,
     count: map.get(h)?.count ?? 0,
@@ -242,14 +259,17 @@ export async function getVentasPorHora() {
 }
 
 /**
- * Margen neto real por producto:
- * margen% = (precio_venta - costo_proveedor) / precio_venta × 100
- * + revenue y unidades reales de ventas históricas
+ * Margen neto real por producto.
+ * Si se pasa rango, filtra las ventas a ese periodo para calcular ganancia y unidades reales.
  */
-export async function getMargenProductos() {
+export async function getMargenProductos(rango?: Rango) {
+  const from = rango?.from;
+  const to   = rango?.to;
+  const ventasQ = supabase.from("ventas").select("producto_id, monto_total, cantidad");
+
   const [{ data: prods, error: e1 }, { data: ventas, error: e2 }] = await Promise.all([
     supabase.from("productos").select("*"),
-    supabase.from("ventas").select("producto_id, monto_total, cantidad"),
+    from && to ? ventasQ.gte("fecha_venta", from).lte("fecha_venta", to) : ventasQ,
   ]);
   if (e1) throw e1;
   if (e2) throw e2;
@@ -258,8 +278,8 @@ export async function getMargenProductos() {
   for (const v of ventas ?? []) {
     const prev = vm.get(v.producto_id) ?? { revenue: 0, unidades: 0 };
     vm.set(v.producto_id, {
-      revenue: prev.revenue + (v.monto_total ?? 0),
-      unidades: prev.unidades + (v.cantidad ?? 0),
+      revenue:  prev.revenue  + (v.monto_total ?? 0),
+      unidades: prev.unidades + (v.cantidad    ?? 0),
     });
   }
 

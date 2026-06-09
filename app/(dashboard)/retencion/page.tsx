@@ -1,6 +1,8 @@
 export const dynamic = 'force-dynamic';
 
 import { getClientesEnRiesgo, getPareto } from "@/lib/supabase";
+import { getPeriodoRange, periodoLabel } from "@/lib/date-range";
+import { DateFilter } from "@/components/DateFilter";
 import { Users, PhoneCall, MessageCircle, AlertTriangle, ShieldAlert, TrendingUp } from "lucide-react";
 
 function fmtK(n: number) {
@@ -18,32 +20,47 @@ function urgencia(dias: number) {
   return            { label: "En riesgo",    cls: "border-l-yellow-400 bg-yellow-50 text-yellow-700 badge:bg-yellow-100" };
 }
 
-const BAR = ["bg-indigo-500","bg-violet-500","bg-sky-500","bg-amber-400","bg-rose-400"];
+const BAR    = ["bg-indigo-500","bg-violet-500","bg-sky-500","bg-amber-400","bg-rose-400"];
 const BAR_BG = ["bg-indigo-50","bg-violet-50","bg-sky-50","bg-amber-50","bg-rose-50"];
-const TEXT = ["text-indigo-700","text-violet-700","text-sky-700","text-amber-700","text-rose-700"];
+const TEXT   = ["text-indigo-700","text-violet-700","text-sky-700","text-amber-700","text-rose-700"];
 
-export default async function RetencionPage() {
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default async function RetencionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
+  const periodo = typeof sp.periodo === "string" ? sp.periodo : "mes_actual";
+  const rango = getPeriodoRange(periodo);
+  const pLabel = periodoLabel(periodo);
+
   const [enRiesgo, pareto] = await Promise.all([
     getClientesEnRiesgo(35).catch(() => []),
-    getPareto().catch(() => []),
+    getPareto(rango).catch(() => []),
   ]);
 
-  const top3pct = pareto.slice(0, 3).reduce((s, c) => s + c.pct, 0);
-  const riesgo = top3pct > 70 ? "alto" : top3pct > 50 ? "medio" : "bajo";
-  const mesLabel = new Date().toLocaleString("es-MX", { month: "long", year: "numeric" });
+  const top3pct  = pareto.slice(0, 3).reduce((s, c) => s + c.pct, 0);
+  const riesgo   = top3pct > 70 ? "alto" : top3pct > 50 ? "medio" : "bajo";
 
   return (
     <div className="px-6 py-8 lg:px-10">
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "var(--font-syne)" }}>
           Retención & Churn
         </h1>
-        <p className="text-sm text-gray-400">Detecta clientes que se están enfriando · {mesLabel}</p>
+        <p className="text-sm text-gray-400">Detecta clientes que se están enfriando · {pLabel}</p>
+      </div>
+
+      {/* ── Filtro de periodo (aplica al análisis de Pareto) ─────────── */}
+      <div className="mb-6">
+        <DateFilter periodo={periodo} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
-        {/* KPI 4: Antichurn */}
+        {/* KPI 4: Antichurn — siempre relativo a hoy (no cambia con filtro) */}
         <section className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100">
           <div className="flex items-center justify-between border-b border-gray-50 px-6 py-4">
             <div className="flex items-center gap-2">
@@ -116,7 +133,7 @@ export default async function RetencionPage() {
           )}
         </section>
 
-        {/* KPI 5: Pareto */}
+        {/* KPI 5: Pareto — filtrado por periodo seleccionado */}
         <section className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100">
           <div className="flex items-center justify-between border-b border-gray-50 px-6 py-4">
             <div className="flex items-center gap-2">
@@ -125,7 +142,7 @@ export default async function RetencionPage() {
                 Concentración de ingresos
               </h2>
             </div>
-            <span className="text-xs text-gray-400">Regla de Pareto</span>
+            <span className="text-xs text-gray-400">Pareto · {pLabel}</span>
           </div>
 
           <div className="flex-1 px-6 py-5 flex flex-col gap-5">
@@ -157,7 +174,7 @@ export default async function RetencionPage() {
             </div>
 
             {pareto.length === 0 ? (
-              <p className="text-center text-sm text-gray-300 py-8">Sin datos de ventas históricos.</p>
+              <p className="text-center text-sm text-gray-300 py-8">Sin datos de ventas en este periodo.</p>
             ) : (
               <div className="space-y-4">
                 {pareto.map((c) => {
@@ -188,7 +205,7 @@ export default async function RetencionPage() {
             {pareto.length > 0 && (
               <div className="mt-auto rounded-xl bg-gray-50 px-4 py-3">
                 <p className="text-xs text-gray-500">
-                  Top 3 clientes → <strong className={riesgo === "alto" ? "text-rose-600" : "text-indigo-600"}>{top3pct.toFixed(1)}%</strong> del total histórico de ventas.
+                  Top 3 clientes → <strong className={riesgo === "alto" ? "text-rose-600" : "text-indigo-600"}>{top3pct.toFixed(1)}%</strong> del total de ventas · {pLabel}
                 </p>
               </div>
             )}

@@ -1,6 +1,8 @@
 export const dynamic = 'force-dynamic';
 
 import { getMargenProductos, getVentasPorDia, getVentasPorHora } from "@/lib/supabase";
+import { getPeriodoRange, periodoLabel } from "@/lib/date-range";
+import { DateFilter } from "@/components/DateFilter";
 import { DollarSign, Star, TrendingUp, TrendingDown, Clock } from "lucide-react";
 
 function fmtK(n: number) {
@@ -42,31 +44,48 @@ function BarraVertical({
   );
 }
 
-export default async function MargenPage() {
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default async function MargenPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
+  const periodo = typeof sp.periodo === "string" ? sp.periodo : "mes_actual";
+  const rango = getPeriodoRange(periodo);
+  const pLabel = periodoLabel(periodo);
+
   const [productos, ventasDia, ventasHora] = await Promise.all([
-    getMargenProductos().catch(() => []),
-    getVentasPorDia().catch(() => []),
-    getVentasPorHora().catch(() => []),
+    getMargenProductos(rango).catch(() => []),
+    getVentasPorDia(rango).catch(() => []),
+    getVentasPorHora(rango).catch(() => []),
   ]);
 
   // Mejor día y hora
   const conVentasDia = ventasDia.filter((d) => d.total > 0);
-  const mejorDia = conVentasDia.length > 0 ? conVentasDia.reduce((a, b) => (a.total > b.total ? a : b)) : null;
+  const mejorDia  = conVentasDia.length > 0 ? conVentasDia.reduce((a, b) => (a.total > b.total ? a : b)) : null;
   const mejorHora = ventasHora.length > 0 ? ventasHora.reduce((a, b) => (a.total > b.total ? a : b)) : null;
 
-  const maxDia = mejorDia?.total ?? 1;
-  const maxHora = mejorHora?.total ?? 1;
-  const maxMargen = productos[0]?.gananciaNeta ?? 1;
-  const hayDias = conVentasDia.length > 0;
-  const hayHoras = ventasHora.some((h) => h.total > 0);
+  const maxDia    = mejorDia?.total  ?? 1;
+  const maxHora   = mejorHora?.total ?? 1;
+  const hayDias   = conVentasDia.length > 0;
+  const hayHoras  = ventasHora.some((h) => h.total > 0);
 
   return (
     <div className="px-6 py-8 lg:px-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "var(--font-syne)" }}>
-          Radiografía de Margen
-        </h1>
-        <p className="text-sm text-gray-400">¿Cuándo y con qué productos ganas más de verdad? · Datos reales</p>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "var(--font-syne)" }}>
+            Radiografía de Margen
+          </h1>
+          <p className="text-sm text-gray-400">¿Cuándo y con qué productos ganas más de verdad? · {pLabel}</p>
+        </div>
+      </div>
+
+      {/* ── Filtro de periodo ────────────────────────────────────────────── */}
+      <div className="mb-6">
+        <DateFilter periodo={periodo} />
       </div>
 
       {/* ── KPI 9: Margen real por producto ──────────────────────────── */}
@@ -78,54 +97,58 @@ export default async function MargenPage() {
           </h2>
         </div>
         <p className="text-xs text-gray-400 mb-5">
-          Margen = (Precio venta − Costo proveedor) / Precio venta × 100
+          Margen = (Precio venta − Costo proveedor) / Precio venta × 100 · Unidades vendidas: {pLabel}
         </p>
 
-        <div className="space-y-4">
-          {productos.map((p, i) => {
-            const margenColor =
-              p.margenPct >= 65 ? "text-emerald-600" : p.margenPct >= 40 ? "text-indigo-600" : "text-amber-600";
-            const barColor =
-              p.margenPct >= 65 ? "bg-emerald-400" : p.margenPct >= 40 ? "bg-indigo-400" : "bg-amber-400";
+        {productos.length === 0 ? (
+          <p className="text-center text-sm text-gray-300 py-8">Sin datos en este periodo.</p>
+        ) : (
+          <>
+            <div className="space-y-4">
+              {productos.map((p, i) => {
+                const margenColor =
+                  p.margenPct >= 65 ? "text-emerald-600" : p.margenPct >= 40 ? "text-indigo-600" : "text-amber-600";
+                const barColor =
+                  p.margenPct >= 65 ? "bg-emerald-400" : p.margenPct >= 40 ? "bg-indigo-400" : "bg-amber-400";
 
-            return (
-              <div key={p.id} className="flex items-center gap-4 rounded-xl border border-gray-100 p-4 hover:bg-gray-50/50 transition-colors">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center">
-                  {i === 0
-                    ? <Star className="h-7 w-7 text-amber-400 fill-amber-400" />
-                    : <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-500">{i + 1}</span>}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-sm font-semibold text-gray-800 truncate">{p.nombre}</p>
-                    <span className={`text-sm font-bold flex-shrink-0 ml-2 ${margenColor}`}>
-                      {p.margenPct.toFixed(0)}% margen
-                    </span>
+                return (
+                  <div key={p.id} className="flex items-center gap-4 rounded-xl border border-gray-100 p-4 hover:bg-gray-50/50 transition-colors">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center">
+                      {i === 0
+                        ? <Star className="h-7 w-7 text-amber-400 fill-amber-400" />
+                        : <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-500">{i + 1}</span>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <p className="text-sm font-semibold text-gray-800 truncate">{p.nombre}</p>
+                        <span className={`text-sm font-bold flex-shrink-0 ml-2 ${margenColor}`}>
+                          {p.margenPct.toFixed(0)}% margen
+                        </span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-gray-100">
+                        <div className={`h-2 rounded-full ${barColor}`} style={{ width: `${Math.min(p.margenPct, 100)}%` }} />
+                      </div>
+                      <div className="mt-1.5 grid grid-cols-4 gap-2 text-[10px] text-gray-400">
+                        <span>Costo: {fmtK(p.costo_proveedor)}</span>
+                        <span>Precio: {fmtK(p.precio_venta)}</span>
+                        <span>Vendidas: {p.unidades} uds</span>
+                        <span className={`font-semibold ${margenColor}`}>
+                          Ganancia: {fmtK(p.gananciaNeta)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="h-2 w-full rounded-full bg-gray-100">
-                    <div className={`h-2 rounded-full ${barColor}`} style={{ width: `${Math.min(p.margenPct, 100)}%` }} />
-                  </div>
-                  <div className="mt-1.5 grid grid-cols-4 gap-2 text-[10px] text-gray-400">
-                    <span>Costo: {fmtK(p.costo_proveedor)}</span>
-                    <span>Precio: {fmtK(p.precio_venta)}</span>
-                    <span>Vendidas: {p.unidades} uds</span>
-                    <span className={`font-semibold ${margenColor}`}>
-                      Ganancia: {fmtK(p.gananciaNeta)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
 
-        {productos.length > 0 && (
-          <div className="mt-4 rounded-xl bg-violet-50 border border-violet-100 px-4 py-3">
-            <p className="text-xs text-violet-700">
-              <strong>Insight:</strong> "{productos[0]?.nombre}" tiene el margen más alto ({productos[0]?.margenPct.toFixed(0)}%).
-              {productos[productos.length - 1] && ` "${productos[productos.length - 1].nombre}" es el menos rentable con ${productos[productos.length - 1].margenPct.toFixed(0)}% de margen.`}
-            </p>
-          </div>
+            <div className="mt-4 rounded-xl bg-violet-50 border border-violet-100 px-4 py-3">
+              <p className="text-xs text-violet-700">
+                <strong>Insight:</strong> "{productos[0]?.nombre}" tiene el margen más alto ({productos[0]?.margenPct.toFixed(0)}%).
+                {productos[productos.length - 1] && ` "${productos[productos.length - 1].nombre}" es el menos rentable con ${productos[productos.length - 1].margenPct.toFixed(0)}% de margen.`}
+              </p>
+            </div>
+          </>
         )}
       </section>
 
@@ -139,7 +162,7 @@ export default async function MargenPage() {
             <h2 className="text-sm font-bold text-gray-800" style={{ fontFamily: "var(--font-syne)" }}>
               Ventas por día de semana
             </h2>
-            <span className="ml-auto text-xs text-gray-400">90 días</span>
+            <span className="ml-auto text-xs text-gray-400">{pLabel}</span>
           </div>
           <p className="text-xs text-gray-400 mb-5">
             Optimiza tu equipo según cuándo vende más tu negocio.
@@ -177,7 +200,7 @@ export default async function MargenPage() {
             <h2 className="text-sm font-bold text-gray-800" style={{ fontFamily: "var(--font-syne)" }}>
               Ventas por hora del día
             </h2>
-            <span className="ml-auto text-xs text-gray-400">90 días</span>
+            <span className="ml-auto text-xs text-gray-400">{pLabel}</span>
           </div>
           <p className="text-xs text-gray-400 mb-5">
             Detecta picos horarios para optimizar staffing y promociones.
