@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
-import { getPeriodoRange } from "@/lib/date-range";
+import { BarChart3 } from "lucide-react";
+import { PERIODOS, getPeriodoRange } from "@/lib/date-range";
 import {
   getMermas, getVentasMes, getDesabastoCritico, getClientesEnRiesgo,
   getTopProductosMes, getTopClientesMes, getMargenProductos,
@@ -23,6 +24,8 @@ export type DashboardData = {
   pareto: any[];
 };
 
+type DataCache = Record<string, DashboardData>;
+
 type Ctx = {
   periodo: string;
   setPeriodo: (p: string) => void;
@@ -34,52 +37,89 @@ type Ctx = {
 
 const DashboardContext = createContext<Ctx | null>(null);
 
+function LoadingScreen() {
+  return (
+    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-white">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-600 shadow-lg mb-6">
+        <BarChart3 className="h-8 w-8 text-white" strokeWidth={2.5} />
+      </div>
+      <p className="text-2xl font-bold text-gray-900 mb-1" style={{ fontFamily: "var(--font-syne)" }}>
+        BI<span className="text-indigo-600">-Corp</span>
+      </p>
+      <p className="text-sm text-gray-400 mb-10">Preparando tu dashboard…</p>
+      <div className="flex gap-2.5">
+        {[0, 1, 2].map(i => (
+          <div
+            key={i}
+            className="h-2.5 w-2.5 rounded-full bg-indigo-600 animate-bounce"
+            style={{ animationDelay: `${i * 0.18}s` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [periodo, setPeriodo] = useState("mes_actual");
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [cache, setCache] = useState<DataCache>({});
   const [loading, setLoading] = useState(true);
   const [productos, setProductos] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
 
-  // Catálogos: se cargan una sola vez al montar (no dependen de rango)
   useEffect(() => {
-    Promise.all([
-      getProductosBasic().catch(() => []),
-      getClientesBasic().catch(() => []),
-    ]).then(([prods, clis]) => {
-      setProductos(prods);
-      setClientes(clis);
-    });
-  }, []);
+    const periodoKeys = PERIODOS.map(p => p.key);
 
-  // KPIs: se recargan al cambiar de periodo
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    const rango = getPeriodoRange(periodo);
-    Promise.all([
-      getMermas(rango).catch(() => ({ rows: [], totalCosto: 0 })),
-      getVentasMes(rango).catch(() => ({ total: 0, count: 0, unidades: 0 })),
+    // Datos compartidos (no dependen del rango de fechas) — se piden una sola vez
+    const sharedPromise = Promise.all([
       getDesabastoCritico().catch(() => []),
       getClientesEnRiesgo(30).catch(() => []),
       getClientesEnRiesgo(35).catch(() => []),
-      getTopProductosMes(rango).catch(() => []),
-      getTopClientesMes(rango).catch(() => []),
-      getMargenProductos(rango).catch(() => []),
-      getVentasPorDia(rango).catch(() => []),
-      getVentasPorHora(rango).catch(() => []),
-      getPareto(rango).catch(() => []),
-    ]).then(([mermas, ventasMes, desabasto, enRiesgo30, enRiesgo35, topProductos, topClientes, margenProductos, ventasPorDia, ventasHora, pareto]) => {
-      if (cancelled) return;
-      setData({ mermas, ventasMes, desabasto, enRiesgo30, enRiesgo35, topProductos, topClientes, margenProductos, ventasPorDia, ventasHora, pareto });
+      getProductosBasic().catch(() => []),
+      getClientesBasic().catch(() => []),
+    ]);
+
+    // KPIs por periodo — todos en paralelo al mismo tiempo
+    const periodosPromise = Promise.all(
+      periodoKeys.map(key => {
+        const rango = getPeriodoRange(key);
+        return Promise.all([
+          getMermas(rango).catch(() => ({ rows: [], totalCosto: 0 })),
+          getVentasMes(rango).catch(() => ({ total: 0, count: 0, unidades: 0 })),
+          getTopProductosMes(rango).catch(() => []),
+          getTopClientesMes(rango).catch(() => []),
+          getMargenProductos(rango).catch(() => []),
+          getVentasPorDia(rango).catch(() => []),
+          getVentasPorHora(rango).catch(() => []),
+          getPareto(rango).catch(() => []),
+        ]);
+      })
+    );
+
+    Promise.all([sharedPromise, periodosPromise]).then(([
+      [desabasto, enRiesgo30, enRiesgo35, prods, clis],
+      periodResults,
+    ]) => {
+      const newCache: DataCache = {};
+      periodoKeys.forEach((key, i) => {
+        const [mermas, ventasMes, topProductos, topClientes, margenProductos, ventasPorDia, ventasHora, pareto] = periodResults[i];
+        newCache[key] = {
+          mermas, ventasMes, desabasto, enRiesgo30, enRiesgo35,
+          topProductos, topClientes, margenProductos, ventasPorDia, ventasHora, pareto,
+        };
+      });
+      setCache(newCache);
+      setProductos(prods);
+      setClientes(clis);
       setLoading(false);
     });
-    return () => { cancelled = true; };
-  }, [periodo]);
+  }, []);
+
+  const data = cache[periodo] ?? null;
 
   return (
     <DashboardContext.Provider value={{ periodo, setPeriodo, data, loading, productos, clientes }}>
-      {children}
+      {loading ? <LoadingScreen /> : children}
     </DashboardContext.Provider>
   );
 }
