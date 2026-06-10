@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   BarChart3, AlertTriangle, Users, Zap,
-  DollarSign, FolderUp, Bot, Menu, X,
+  DollarSign, FolderUp, Bot, Menu, X, LogOut,
 } from "lucide-react";
 
 const NAV = [
@@ -35,6 +36,7 @@ const NAV = [
 export function MobileNav() {
   const [open, setOpen] = useState(false);
   const path = usePathname();
+  const router = useRouter();
 
   return (
     <>
@@ -145,10 +147,18 @@ export function MobileNav() {
           <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
             FR
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-semibold text-gray-800">Fernanda Ramos</p>
             <p className="truncate text-[10px] text-gray-400">e1technology.com</p>
           </div>
+          <button
+            onClick={() => { setOpen(false); router.push("/login"); }}
+            aria-label="Cerrar sesión"
+            title="Cerrar sesión"
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-rose-50 hover:text-rose-500 transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </>

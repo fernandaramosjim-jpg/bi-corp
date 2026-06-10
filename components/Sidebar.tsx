@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   BarChart3,
@@ -10,6 +10,7 @@ import {
   DollarSign,
   FolderUp,
   Bot,
+  LogOut,
 } from "lucide-react";
 
 const NAV = [
@@ -68,6 +69,7 @@ const NAV = [
 
 export function Sidebar() {
   const path = usePathname();
+  const router = useRouter();
 
   return (
     <aside className="flex w-60 flex-shrink-0 flex-col border-r border-gray-100 bg-white">
@@ -136,7 +138,7 @@ export function Sidebar() {
         <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
           FR
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-semibold text-gray-800">
             Fernanda Ramos
           </p>
@@ -144,6 +146,14 @@ export function Sidebar() {
             e1technology.com
           </p>
         </div>
+        <button
+          onClick={() => router.push("/login")}
+          aria-label="Cerrar sesión"
+          title="Cerrar sesión"
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-rose-50 hover:text-rose-500 transition-colors"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+        </button>
       </div>
     </aside>
   );
