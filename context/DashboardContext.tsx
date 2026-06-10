@@ -8,6 +8,7 @@ import {
   getTopProductosMes, getTopClientesMes, getMargenProductos,
   getVentasPorDia, getVentasPorHora, getPareto,
   getProductosBasic, getClientesBasic,
+  getVentasPorFecha, getRankingVendedores,
 } from "@/lib/supabase";
 
 export type DashboardData = {
@@ -22,6 +23,8 @@ export type DashboardData = {
   ventasPorDia: any[];
   ventasHora: any[];
   pareto: any[];
+  ventasFecha: { fecha: string; total: number }[];
+  rankingVendedores: { nombre: string; meta: number; total: number; count: number; rank: number }[];
 };
 
 type DataCache = Record<string, DashboardData>;
@@ -70,7 +73,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const periodoKeys = PERIODOS.map(p => p.key);
 
-    // Datos compartidos (no dependen del rango de fechas) — se piden una sola vez
     const sharedPromise = Promise.all([
       getDesabastoCritico().catch(() => []),
       getClientesEnRiesgo(30).catch(() => []),
@@ -79,7 +81,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       getClientesBasic().catch(() => []),
     ]);
 
-    // KPIs por periodo — todos en paralelo al mismo tiempo
     const periodosPromise = Promise.all(
       periodoKeys.map(key => {
         const rango = getPeriodoRange(key);
@@ -92,6 +93,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
           getVentasPorDia(rango).catch(() => []),
           getVentasPorHora(rango).catch(() => []),
           getPareto(rango).catch(() => []),
+          getVentasPorFecha(rango).catch(() => []),
+          getRankingVendedores(rango).catch(() => []),
         ]);
       })
     );
@@ -102,10 +105,14 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     ]) => {
       const newCache: DataCache = {};
       periodoKeys.forEach((key, i) => {
-        const [mermas, ventasMes, topProductos, topClientes, margenProductos, ventasPorDia, ventasHora, pareto] = periodResults[i];
+        const [
+          mermas, ventasMes, topProductos, topClientes, margenProductos,
+          ventasPorDia, ventasHora, pareto, ventasFecha, rankingVendedores,
+        ] = periodResults[i];
         newCache[key] = {
           mermas, ventasMes, desabasto, enRiesgo30, enRiesgo35,
-          topProductos, topClientes, margenProductos, ventasPorDia, ventasHora, pareto,
+          topProductos, topClientes, margenProductos, ventasPorDia, ventasHora,
+          pareto, ventasFecha, rankingVendedores,
         };
       });
       setCache(newCache);

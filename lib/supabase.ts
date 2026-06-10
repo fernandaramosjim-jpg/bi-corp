@@ -296,6 +296,58 @@ export async function getMargenProductos(rango?: Rango) {
     .sort((a, b) => b.margenPct - a.margenPct);
 }
 
+/** Ventas agrupadas por fecha calendario — rellena días sin venta con 0 */
+export async function getVentasPorFecha(rango?: Rango): Promise<{ fecha: string; total: number }[]> {
+  const { primer, ultimo } = resolveRango(rango);
+  const { data, error } = await supabase
+    .from("ventas")
+    .select("monto_total, fecha_venta")
+    .gte("fecha_venta", primer)
+    .lte("fecha_venta", ultimo)
+    .order("fecha_venta", { ascending: true });
+  if (error) throw error;
+
+  const map = new Map<string, number>();
+  for (const v of data ?? []) {
+    const dia = v.fecha_venta.slice(0, 10);
+    map.set(dia, (map.get(dia) ?? 0) + (v.monto_total ?? 0));
+  }
+
+  const result: { fecha: string; total: number }[] = [];
+  const start = new Date(primer.slice(0, 10));
+  const end   = new Date(ultimo.slice(0, 10));
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const key = d.toISOString().slice(0, 10);
+    result.push({ fecha: key, total: map.get(key) ?? 0 });
+  }
+  return result;
+}
+
+/** Ranking de vendedores por volumen de ventas en el rango dado */
+export async function getRankingVendedores(rango?: Rango) {
+  const { primer, ultimo } = resolveRango(rango);
+  const { data, error } = await supabase
+    .from("ventas")
+    .select("monto_total, vendedor_id, vendedores(nombre, meta_mensual)")
+    .gte("fecha_venta", primer)
+    .lte("fecha_venta", ultimo)
+    .not("vendedor_id", "is", null);
+  if (error) throw error;
+
+  const map = new Map<number, { nombre: string; meta: number; total: number; count: number }>();
+  for (const v of data ?? []) {
+    if (!v.vendedor_id) continue;
+    const vend = v.vendedores as unknown as { nombre: string; meta_mensual: number } | null;
+    const nombre = vend?.nombre ?? "Sin nombre";
+    const meta   = vend?.meta_mensual ?? 50000;
+    const prev   = map.get(v.vendedor_id) ?? { nombre, meta, total: 0, count: 0 };
+    map.set(v.vendedor_id, { nombre, meta, total: prev.total + (v.monto_total ?? 0), count: prev.count + 1 });
+  }
+  return Array.from(map.values())
+    .sort((a, b) => b.total - a.total)
+    .map((v, i) => ({ ...v, rank: i + 1 }));
+}
+
 /** Listas para dropdowns del formulario de carga */
 export async function getClientesBasic() {
   const { data, error } = await supabase
