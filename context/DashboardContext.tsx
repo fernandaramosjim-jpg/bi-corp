@@ -99,27 +99,32 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       })
     );
 
-    Promise.all([sharedPromise, periodosPromise]).then(([
-      [desabasto, enRiesgo30, enRiesgo35, prods, clis],
-      periodResults,
-    ]) => {
-      const newCache: DataCache = {};
-      periodoKeys.forEach((key, i) => {
-        const [
-          mermas, ventasMes, topProductos, topClientes, margenProductos,
-          ventasPorDia, ventasHora, pareto, ventasFecha, rankingVendedores,
-        ] = periodResults[i];
-        newCache[key] = {
-          mermas, ventasMes, desabasto, enRiesgo30, enRiesgo35,
-          topProductos, topClientes, margenProductos, ventasPorDia, ventasHora,
-          pareto, ventasFecha, rankingVendedores,
-        };
+    Promise.all([sharedPromise, periodosPromise])
+      .then(([
+        [desabasto, enRiesgo30, enRiesgo35, prods, clis],
+        periodResults,
+      ]) => {
+        const newCache: DataCache = {};
+        periodoKeys.forEach((key, i) => {
+          const [
+            mermas, ventasMes, topProductos, topClientes, margenProductos,
+            ventasPorDia, ventasHora, pareto, ventasFecha, rankingVendedores,
+          ] = periodResults[i];
+          newCache[key] = {
+            mermas, ventasMes, desabasto, enRiesgo30, enRiesgo35,
+            topProductos, topClientes, margenProductos, ventasPorDia, ventasHora,
+            pareto, ventasFecha, rankingVendedores,
+          };
+        });
+        setCache(newCache);
+        setProductos(prods);
+        setClientes(clis);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("[BI-Corp] Error cargando datos:", err);
+        setLoading(false);
       });
-      setCache(newCache);
-      setProductos(prods);
-      setClientes(clis);
-      setLoading(false);
-    });
   }, []);
 
   const data = cache[periodo] ?? null;
