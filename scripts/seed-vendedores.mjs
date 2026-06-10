@@ -1,11 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-import { config } from "dotenv";
-import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-config({ path: resolve(__dirname, "../.env.local") });
-
+// Requiere Node 20.6+ — pasar con: node --env-file=.env.local scripts/seed-vendedores.mjs
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -59,18 +54,25 @@ function pickId(index) {
   return ids[3];
 }
 
-const updates = ventas.map((v, i) => ({ id: v.id, vendedor_id: pickId(i) }));
+// ── 5. Agrupar por vendedor y hacer un UPDATE por grupo ──────────────────────
+const grupos = new Map();
+ventas.forEach((v, i) => {
+  const vid = pickId(i);
+  if (!grupos.has(vid)) grupos.set(vid, []);
+  grupos.get(vid).push(v.id);
+});
 
-// ── 5. Update en lotes de 100 ─────────────────────────────────────────────────
-const BATCH = 100;
-for (let i = 0; i < updates.length; i += BATCH) {
-  const batch = updates.slice(i, i + BATCH);
-  const { error } = await supabase.from("ventas").upsert(batch, { onConflict: "id" });
+for (const [vendedorId, ventaIds] of grupos) {
+  const nombre = vendData.find(v => v.id === vendedorId)?.nombre ?? vendedorId;
+  const { error } = await supabase
+    .from("ventas")
+    .update({ vendedor_id: vendedorId })
+    .in("id", ventaIds);
   if (error) {
-    console.error(`Error en lote ${Math.floor(i / BATCH) + 1}:`, error.message);
+    console.error(`Error asignando a ${nombre}:`, error.message);
     process.exit(1);
   }
-  process.stdout.write(`\r  ${Math.min(i + BATCH, updates.length)}/${updates.length} ventas listas`);
+  console.log(`  ${nombre}: ${ventaIds.length} ventas asignadas`);
 }
 
-console.log("\n¡Listo! Vendedores asignados correctamente.");
+console.log("¡Listo! Vendedores asignados correctamente.");
