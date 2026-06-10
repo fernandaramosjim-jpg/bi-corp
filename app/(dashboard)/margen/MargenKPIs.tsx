@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { getMargenProductos, getVentasPorDia, getVentasPorHora } from "@/lib/supabase";
-import { getPeriodoRange, periodoLabel } from "@/lib/date-range";
+import { periodoLabel } from "@/lib/date-range";
 import { DateFilter } from "@/components/DateFilter";
+import { useDashboard } from "@/context/DashboardContext";
 import { DollarSign, Star, TrendingUp, Clock } from "lucide-react";
 
 function fmtK(n: number) {
@@ -39,27 +38,12 @@ function Skeleton() {
 }
 
 export default function MargenKPIs() {
-  const [periodo, setPeriodo] = useState("mes_actual");
-  const [loading, setLoading] = useState(true);
-  const [kpi, setKpi] = useState({ productos: [] as any[], ventasDia: [] as any[], ventasHora: [] as any[] });
+  const { periodo, setPeriodo, data, loading } = useDashboard();
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    const rango = getPeriodoRange(periodo);
-    Promise.all([
-      getMargenProductos(rango).catch(() => []),
-      getVentasPorDia(rango).catch(() => []),
-      getVentasPorHora(rango).catch(() => []),
-    ]).then(([productos, ventasDia, ventasHora]) => {
-      if (cancelled) return;
-      setKpi({ productos, ventasDia, ventasHora });
-      setLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [periodo]);
+  const productos  = data?.margenProductos ?? [];
+  const ventasDia  = data?.ventasPorDia ?? [];
+  const ventasHora = data?.ventasHora ?? [];
 
-  const { productos, ventasDia, ventasHora } = kpi;
   const conVentasDia = ventasDia.filter(d => d.total > 0);
   const mejorDia  = conVentasDia.length > 0 ? conVentasDia.reduce((a, b) => a.total > b.total ? a : b) : null;
   const mejorHora = ventasHora.length > 0 ? ventasHora.reduce((a, b) => a.total > b.total ? a : b) : null;

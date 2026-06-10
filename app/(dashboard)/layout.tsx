@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { InstallBanner } from "@/components/InstallBanner";
+import { DashboardProvider } from "@/context/DashboardContext";
 
 export default function DashboardLayout({
   children,
@@ -18,9 +19,11 @@ export default function DashboardLayout({
       <MobileNav />
 
       {/* Contenido: desplazado por sidebar en desktop, con pt en mobile para la barra */}
-      <div className="flex-1 lg:pl-60 min-w-0 mobile-nav-offset">
-        {children}
-      </div>
+      <DashboardProvider>
+        <div className="flex-1 lg:pl-60 min-w-0 mobile-nav-offset">
+          {children}
+        </div>
+      </DashboardProvider>
 
       {/* Banner de instalación PWA */}
       <InstallBanner />

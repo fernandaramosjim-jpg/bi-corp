@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  getMermas, getVentasMes, getDesabastoCritico, getClientesEnRiesgo,
-} from "@/lib/supabase";
-import { getPeriodoRange, periodoLabel } from "@/lib/date-range";
+import React from "react";
+import { periodoLabel } from "@/lib/date-range";
 import { DateFilter } from "@/components/DateFilter";
+import { useDashboard } from "@/context/DashboardContext";
 import {
   AlertTriangle, CheckCircle2, Package, Wallet, Flame, Target,
 } from "lucide-react";
@@ -65,36 +63,16 @@ function Skeleton() {
 }
 
 export default function SemaforoKPIs() {
-  const [periodo, setPeriodo] = useState("mes_actual");
-  const [loading, setLoading] = useState(true);
-  const [kpi, setKpi] = useState({
-    mermaRows: [] as any[], totalMerma: 0,
-    totalVentas: 0, numVentas: 0, unidades: 0,
-    desabasto: [] as any[], enRiesgo: [] as any[],
-  });
+  const { periodo, setPeriodo, data, loading } = useDashboard();
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    const rango = getPeriodoRange(periodo);
-    Promise.all([
-      getMermas(rango).catch(() => ({ rows: [], totalCosto: 0 })),
-      getVentasMes(rango).catch(() => ({ total: 0, count: 0, unidades: 0 })),
-      getDesabastoCritico().catch(() => []),
-      getClientesEnRiesgo(30).catch(() => []),
-    ]).then(([mermasData, ventasMes, desabasto, enRiesgo]) => {
-      if (cancelled) return;
-      setKpi({
-        mermaRows: mermasData.rows, totalMerma: mermasData.totalCosto,
-        totalVentas: ventasMes.total, numVentas: ventasMes.count, unidades: ventasMes.unidades,
-        desabasto, enRiesgo,
-      });
-      setLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [periodo]);
+  const mermaRows   = data?.mermas.rows ?? [];
+  const totalMerma  = data?.mermas.totalCosto ?? 0;
+  const totalVentas = data?.ventasMes.total ?? 0;
+  const numVentas   = data?.ventasMes.count ?? 0;
+  const unidades    = data?.ventasMes.unidades ?? 0;
+  const desabasto   = data?.desabasto ?? [];
+  const enRiesgo    = data?.enRiesgo30 ?? [];
 
-  const { mermaRows, totalMerma, totalVentas, numVentas, unidades, desabasto, enRiesgo } = kpi;
   const pctMeta   = Math.min(Math.round((totalVentas / META_COMERCIAL) * 100), 100);
   const faltaMeta = Math.max(META_COMERCIAL - totalVentas, 0);
   const nivelMerma:     Nivel = totalMerma === 0 ? "verde" : totalMerma < 3_000 ? "amarillo" : "rojo";

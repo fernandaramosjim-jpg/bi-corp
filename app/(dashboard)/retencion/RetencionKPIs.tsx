@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { getClientesEnRiesgo, getPareto } from "@/lib/supabase";
-import { getPeriodoRange, periodoLabel } from "@/lib/date-range";
+import { periodoLabel } from "@/lib/date-range";
 import { DateFilter } from "@/components/DateFilter";
+import { useDashboard } from "@/context/DashboardContext";
 import { Users, PhoneCall, MessageCircle, AlertTriangle, ShieldAlert, TrendingUp } from "lucide-react";
 
 function fmtK(n: number) {
@@ -34,26 +33,11 @@ function Skeleton() {
 }
 
 export default function RetencionKPIs() {
-  const [periodo, setPeriodo] = useState("mes_actual");
-  const [loading, setLoading] = useState(true);
-  const [kpi, setKpi] = useState({ enRiesgo: [] as any[], pareto: [] as any[] });
+  const { periodo, setPeriodo, data, loading } = useDashboard();
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    const rango = getPeriodoRange(periodo);
-    Promise.all([
-      getClientesEnRiesgo(35).catch(() => []),
-      getPareto(rango).catch(() => []),
-    ]).then(([enRiesgo, pareto]) => {
-      if (cancelled) return;
-      setKpi({ enRiesgo, pareto });
-      setLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [periodo]);
+  const enRiesgo = data?.enRiesgo35 ?? [];
+  const pareto   = data?.pareto ?? [];
 
-  const { enRiesgo, pareto } = kpi;
   const top3pct = pareto.slice(0, 3).reduce((s, c) => s + c.pct, 0);
   const riesgo  = top3pct > 70 ? "alto" : top3pct > 50 ? "medio" : "bajo";
   const pLabel  = periodoLabel(periodo);

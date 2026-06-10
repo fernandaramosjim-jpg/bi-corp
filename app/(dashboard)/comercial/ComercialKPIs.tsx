@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { getVentasMes, getTopProductosMes, getTopClientesMes } from "@/lib/supabase";
-import { getPeriodoRange, periodoLabel, diasEnRango } from "@/lib/date-range";
+import { periodoLabel, diasEnRango, getPeriodoRange } from "@/lib/date-range";
 import { DateFilter } from "@/components/DateFilter";
+import { useDashboard } from "@/context/DashboardContext";
 import { Zap, Package, Users } from "lucide-react";
 
 function fmtK(n: number) {
@@ -77,27 +76,13 @@ function Skeleton() {
 }
 
 export default function ComercialKPIs() {
-  const [periodo, setPeriodo] = useState("mes_actual");
-  const [loading, setLoading] = useState(true);
-  const [kpi, setKpi] = useState({ total: 0, count: 0, topProductos: [] as any[], topClientes: [] as any[] });
+  const { periodo, setPeriodo, data, loading } = useDashboard();
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    const rango = getPeriodoRange(periodo);
-    Promise.all([
-      getVentasMes(rango).catch(() => ({ total: 0, count: 0, unidades: 0 })),
-      getTopProductosMes(rango).catch(() => []),
-      getTopClientesMes(rango).catch(() => []),
-    ]).then(([ventasMes, topProductos, topClientes]) => {
-      if (cancelled) return;
-      setKpi({ total: ventasMes.total, count: ventasMes.count, topProductos, topClientes });
-      setLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [periodo]);
+  const total       = data?.ventasMes.total ?? 0;
+  const count       = data?.ventasMes.count ?? 0;
+  const topProductos = data?.topProductos ?? [];
+  const topClientes  = data?.topClientes ?? [];
 
-  const { total, count, topProductos, topClientes } = kpi;
   const hoy = new Date();
   const esMes = periodo === "mes_actual";
   const diaActual  = hoy.getDate();
