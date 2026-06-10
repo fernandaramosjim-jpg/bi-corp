@@ -59,10 +59,13 @@ export default function MargenKPIs() {
         <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "var(--font-syne)" }}>Radiografía de Margen</h1>
         <p className="text-sm text-gray-400">¿Cuándo y con qué productos ganas más de verdad? · {pLabel}</p>
       </div>
-      <div className="mb-6"><DateFilter periodo={periodo} onChange={setPeriodo} /></div>
+      <div className="mb-6 flex items-center gap-3">
+        <DateFilter periodo={periodo} onChange={setPeriodo} />
+        {loading && !!data && <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-indigo-600 flex-shrink-0" />}
+      </div>
 
-      {loading ? <Skeleton /> : (
-        <>
+      {!data ? <Skeleton /> : (
+        <div className={loading ? "opacity-50 pointer-events-none" : ""}>
           <section className="mb-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
             <div className="flex items-center gap-2 mb-1">
               <DollarSign className="h-4 w-4 text-violet-500" />
@@ -151,7 +154,7 @@ export default function MargenKPIs() {
             </section>
           </div>
           <footer className="mt-8 text-center text-xs text-gray-300">© {new Date().getFullYear()} BI-Corp · Margen y rentabilidad en tiempo real</footer>
-        </>
+        </div>
       )}
     </div>
   );

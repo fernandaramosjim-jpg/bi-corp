@@ -93,7 +93,7 @@ export default function SemaforoKPIs() {
           </h1>
           <p className="text-sm text-gray-400 capitalize">Semáforo de control · {pLabel}</p>
         </div>
-        {!loading && (alertasActivas > 0 ? (
+        {!!data && (alertasActivas > 0 ? (
           <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 flex-shrink-0">
             <AlertTriangle className="h-4 w-4 text-rose-500" />
             <span className="text-sm font-semibold text-rose-700">{alertasActivas} alerta{alertasActivas > 1 ? "s" : ""} activa{alertasActivas > 1 ? "s" : ""}</span>
@@ -106,12 +106,13 @@ export default function SemaforoKPIs() {
         ))}
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6 flex items-center gap-3">
         <DateFilter periodo={periodo} onChange={setPeriodo} />
+        {loading && !!data && <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-indigo-600 flex-shrink-0" />}
       </div>
 
-      {loading ? <Skeleton /> : (
-        <>
+      {!data ? <Skeleton /> : (
+        <div className={loading ? "opacity-50 pointer-events-none" : ""}>
           <div className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <SemaforoCard nivel={nivelMerma} titulo="Fuga por merma" valor={fmt(totalMerma)}
               detalle={`${mermaRows.length} registro${mermaRows.length !== 1 ? "s" : ""} · ${pLabel}`} icon={Flame}>
@@ -200,7 +201,7 @@ export default function SemaforoKPIs() {
           <footer className="mt-4 text-center text-xs text-gray-300">
             © {new Date().getFullYear()} BI-Corp · Datos en tiempo real vía Supabase
           </footer>
-        </>
+        </div>
       )}
     </div>
   );

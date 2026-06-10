@@ -6,6 +6,7 @@ import {
   getMermas, getVentasMes, getDesabastoCritico, getClientesEnRiesgo,
   getTopProductosMes, getTopClientesMes, getMargenProductos,
   getVentasPorDia, getVentasPorHora, getPareto,
+  getProductosBasic, getClientesBasic,
 } from "@/lib/supabase";
 
 export type DashboardData = {
@@ -27,6 +28,8 @@ type Ctx = {
   setPeriodo: (p: string) => void;
   data: DashboardData | null;
   loading: boolean;
+  productos: { id: number; nombre: string; costo_proveedor: number; precio_venta: number }[];
+  clientes: { id: number; nombre: string }[];
 };
 
 const DashboardContext = createContext<Ctx | null>(null);
@@ -35,7 +38,21 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [periodo, setPeriodo] = useState("mes_actual");
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [productos, setProductos] = useState<any[]>([]);
+  const [clientes, setClientes] = useState<any[]>([]);
 
+  // Catálogos: se cargan una sola vez al montar (no dependen de rango)
+  useEffect(() => {
+    Promise.all([
+      getProductosBasic().catch(() => []),
+      getClientesBasic().catch(() => []),
+    ]).then(([prods, clis]) => {
+      setProductos(prods);
+      setClientes(clis);
+    });
+  }, []);
+
+  // KPIs: se recargan al cambiar de periodo
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -61,7 +78,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   }, [periodo]);
 
   return (
-    <DashboardContext.Provider value={{ periodo, setPeriodo, data, loading }}>
+    <DashboardContext.Provider value={{ periodo, setPeriodo, data, loading, productos, clientes }}>
       {children}
     </DashboardContext.Provider>
   );

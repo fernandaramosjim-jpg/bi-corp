@@ -103,10 +103,13 @@ export default function ComercialKPIs() {
         <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "var(--font-syne)" }}>Termómetro Comercial</h1>
         <p className="text-sm text-gray-400">Velocidad y rendimiento del negocio · {pLabel}</p>
       </div>
-      <div className="mb-6"><DateFilter periodo={periodo} onChange={setPeriodo} /></div>
+      <div className="mb-6 flex items-center gap-3">
+        <DateFilter periodo={periodo} onChange={setPeriodo} />
+        {loading && !!data && <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-indigo-600 flex-shrink-0" />}
+      </div>
 
-      {loading ? <Skeleton /> : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {!data ? <Skeleton /> : (
+        <div className={`grid grid-cols-1 gap-6 lg:grid-cols-2${loading ? " opacity-50 pointer-events-none" : ""}`}>
           <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
             <div className="flex items-center gap-2 mb-6">
               <Zap className="h-4 w-4 text-indigo-500" />

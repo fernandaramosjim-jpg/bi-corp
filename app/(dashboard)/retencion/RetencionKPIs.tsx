@@ -48,10 +48,13 @@ export default function RetencionKPIs() {
         <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "var(--font-syne)" }}>Retención & Churn</h1>
         <p className="text-sm text-gray-400">Detecta clientes que se están enfriando · {pLabel}</p>
       </div>
-      <div className="mb-6"><DateFilter periodo={periodo} onChange={setPeriodo} /></div>
+      <div className="mb-6 flex items-center gap-3">
+        <DateFilter periodo={periodo} onChange={setPeriodo} />
+        {loading && !!data && <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-indigo-600 flex-shrink-0" />}
+      </div>
 
-      {loading ? <Skeleton /> : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {!data ? <Skeleton /> : (
+        <div className={`grid grid-cols-1 gap-6 lg:grid-cols-2${loading ? " opacity-50 pointer-events-none" : ""}`}>
           {/* Antichurn */}
           <section className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100">
             <div className="flex items-center justify-between border-b border-gray-50 px-6 py-4">

@@ -1,14 +1,11 @@
-export const dynamic = 'force-dynamic';
+"use client";
 
-import { getProductosBasic, getClientesBasic } from "@/lib/supabase";
+import { useDashboard } from "@/context/DashboardContext";
 import CentroCargar from "./CentroCargar";
 import { FolderUp } from "lucide-react";
 
-export default async function CargaPage() {
-  const [productos, clientes] = await Promise.all([
-    getProductosBasic().catch(() => []),
-    getClientesBasic().catch(() => []),
-  ]);
+export default function CargaPage() {
+  const { productos, clientes } = useDashboard();
 
   return (
     <div className="px-6 py-8 lg:px-10">
