@@ -1,4 +1,5 @@
 import { Sidebar } from "@/components/Sidebar";
+import { MobileNav } from "@/components/MobileNav";
 import { InstallBanner } from "@/components/InstallBanner";
 
 export default function DashboardLayout({
@@ -13,12 +14,15 @@ export default function DashboardLayout({
         <Sidebar />
       </div>
 
-      {/* Contenido desplazado por el ancho del sidebar */}
-      <div className="flex-1 lg:pl-60 min-w-0">
+      {/* Barra superior + drawer en mobile */}
+      <MobileNav />
+
+      {/* Contenido: desplazado por sidebar en desktop, con pt en mobile para la barra */}
+      <div className="flex-1 lg:pl-60 min-w-0 pt-14 lg:pt-0">
         {children}
       </div>
 
-      {/* Banner de instalación PWA (móvil) */}
+      {/* Banner de instalación PWA */}
       <InstallBanner />
     </div>
   );
