@@ -39,22 +39,27 @@ export function MobileNav() {
   return (
     <>
       {/* ── Barra superior (solo mobile) ────────────────────────────────── */}
-      <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-gray-100 bg-white px-4 py-3 lg:hidden">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600">
-            <BarChart3 className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
+      <div
+        className="fixed inset-x-0 top-0 z-30 border-b border-gray-100 bg-white lg:hidden"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600">
+              <BarChart3 className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
+            </div>
+            <span className="text-sm font-bold text-gray-900" style={{ fontFamily: "var(--font-syne)" }}>
+              BI<span className="text-indigo-600">-Corp</span>
+            </span>
           </div>
-          <span className="text-sm font-bold text-gray-900" style={{ fontFamily: "var(--font-syne)" }}>
-            BI<span className="text-indigo-600">-Corp</span>
-          </span>
+          <button
+            onClick={() => setOpen(true)}
+            aria-label="Abrir menú"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 text-gray-600 active:bg-gray-200 transition-colors"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
         </div>
-        <button
-          onClick={() => setOpen(true)}
-          aria-label="Abrir menú"
-          className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 text-gray-600 active:bg-gray-200 transition-colors"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
       </div>
 
       {/* ── Backdrop ────────────────────────────────────────────────────── */}
@@ -72,7 +77,10 @@ export function MobileNav() {
         }`}
       >
         {/* Header del drawer */}
-        <div className="flex items-center justify-between border-b border-gray-50 px-5 py-4">
+        <div
+          className="flex items-center justify-between border-b border-gray-50 px-5 pb-4"
+          style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
+        >
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
               <BarChart3 className="h-4 w-4 text-white" strokeWidth={2.5} />

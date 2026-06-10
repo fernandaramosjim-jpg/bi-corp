@@ -18,7 +18,7 @@ export default function DashboardLayout({
       <MobileNav />
 
       {/* Contenido: desplazado por sidebar en desktop, con pt en mobile para la barra */}
-      <div className="flex-1 lg:pl-60 min-w-0 pt-14 lg:pt-0">
+      <div className="flex-1 lg:pl-60 min-w-0 mobile-nav-offset">
         {children}
       </div>
 

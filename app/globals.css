@@ -24,3 +24,13 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Offset del contenido debajo de la barra móvil, respetando safe-area de iOS */
+.mobile-nav-offset {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 56px);
+}
+@media (min-width: 1024px) {
+  .mobile-nav-offset {
+    padding-top: 0;
+  }
+}
