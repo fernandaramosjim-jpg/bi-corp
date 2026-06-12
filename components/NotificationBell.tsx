@@ -49,11 +49,36 @@ function NotifRow({ n, onClose }: { n: AppNotif; onClose: () => void }) {
   );
 }
 
+const SEEN_KEY = "bi-corp-notifs-seen";
+
+function loadSeen(): Set<string> {
+  try {
+    const raw = localStorage.getItem(SEEN_KEY);
+    if (!raw) return new Set();
+    const { date, ids } = JSON.parse(raw);
+    // Resetear cada día para que alertas nuevas del día vuelvan a aparecer
+    const today = new Date().toISOString().slice(0, 10);
+    return date === today ? new Set(ids as string[]) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function saveSeen(ids: Set<string>) {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    localStorage.setItem(SEEN_KEY, JSON.stringify({ date: today, ids: [...ids] }));
+  } catch {}
+}
+
 export function NotificationBell({ variant = "sidebar" }: { variant?: "sidebar" | "mobile" }) {
   const { data } = useDashboard();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [vistas, setVistas] = useState<Set<string>>(new Set());
+  const [vistas, setVistas] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    return loadSeen();
+  });
   const ref = useRef<HTMLDivElement>(null);
 
   // Escuchar navegación enviada por el SW al hacer clic en push notification
@@ -132,7 +157,11 @@ export function NotificationBell({ variant = "sidebar" }: { variant?: "sidebar" 
   function toggle() {
     const next = !open;
     setOpen(next);
-    if (next) setVistas(new Set(notifs.map((n) => n.id)));
+    if (next) {
+      const nuevas = new Set(notifs.map((n) => n.id));
+      setVistas(nuevas);
+      saveSeen(nuevas);
+    }
   }
 
   const dropdownPos = variant === "mobile"
