@@ -29,7 +29,7 @@ export function generarNotificaciones(data: DashboardData): AppNotif[] {
       tipo: "error",
       titulo: `${desabasto.length} productos con desabasto crítico`,
       mensaje: `${desabasto[0].nombre} tiene solo ${desabasto[0].stock_actual} uds — revisa el inventario`,
-      href: "/dashboard",
+      href: "/dashboard#desabasto",
     });
   } else if (desabasto.length > 0) {
     notifs.push({
@@ -37,7 +37,7 @@ export function generarNotificaciones(data: DashboardData): AppNotif[] {
       tipo: "warning",
       titulo: `${desabasto.length} producto${desabasto.length > 1 ? "s" : ""} bajo el mínimo`,
       mensaje: `${desabasto[0].nombre} necesita reabastecerse`,
-      href: "/dashboard",
+      href: "/dashboard#desabasto",
     });
   }
 
@@ -51,7 +51,7 @@ export function generarNotificaciones(data: DashboardData): AppNotif[] {
       tipo: enRiesgo.length >= 3 ? "error" : "warning",
       titulo: `${enRiesgo.length} cliente${enRiesgo.length > 1 ? "s" : ""} sin comprar más de 35 días`,
       mensaje: `${primeros.join(", ")}${extra} — contáctalos hoy`,
-      href: "/retencion",
+      href: "/retencion#churn",
     });
   }
 
@@ -63,7 +63,7 @@ export function generarNotificaciones(data: DashboardData): AppNotif[] {
       tipo: "error",
       titulo: "Mermas muy elevadas en este periodo",
       mensaje: `${fmtK(totalMerma)} en pérdidas — revisa causas y proveedores`,
-      href: "/dashboard",
+      href: "/dashboard#mermas",
     });
   } else if (totalMerma >= 3_000) {
     notifs.push({
@@ -71,7 +71,7 @@ export function generarNotificaciones(data: DashboardData): AppNotif[] {
       tipo: "warning",
       titulo: "Mermas moderadas detectadas",
       mensaje: `${fmtK(totalMerma)} en pérdidas — monitorea el inventario`,
-      href: "/dashboard",
+      href: "/dashboard#mermas",
     });
   }
 
@@ -85,7 +85,7 @@ export function generarNotificaciones(data: DashboardData): AppNotif[] {
       tipo: "celebration",
       titulo: "¡Meta del mes superada! 🎉",
       mensaje: `${fmtK(totalVentas)} — llevan el ${pctMeta.toFixed(0)}% del objetivo`,
-      href: "/comercial",
+      href: "/comercial#meta",
     });
   } else if (pctMeta >= 100) {
     notifs.push({
@@ -93,7 +93,7 @@ export function generarNotificaciones(data: DashboardData): AppNotif[] {
       tipo: "success",
       titulo: "¡Meta mensual alcanzada! 🏁",
       mensaje: `${fmtK(totalVentas)} vendidos — ¡excelente trabajo del equipo!`,
-      href: "/comercial",
+      href: "/comercial#meta",
     });
   } else if (pctMeta < 30) {
     notifs.push({
@@ -101,7 +101,7 @@ export function generarNotificaciones(data: DashboardData): AppNotif[] {
       tipo: "error",
       titulo: "Ritmo muy bajo para la meta del mes",
       mensaje: `Solo el ${pctMeta.toFixed(0)}% — faltan ${fmtK(META_MES - totalVentas)} para llegar`,
-      href: "/comercial",
+      href: "/comercial#meta",
     });
   } else if (pctMeta < 55) {
     notifs.push({
@@ -109,7 +109,7 @@ export function generarNotificaciones(data: DashboardData): AppNotif[] {
       tipo: "warning",
       titulo: "Ritmo por debajo de la meta",
       mensaje: `${pctMeta.toFixed(0)}% completado — acelera las ventas esta semana`,
-      href: "/comercial",
+      href: "/comercial#meta",
     });
   } else {
     notifs.push({
@@ -117,7 +117,7 @@ export function generarNotificaciones(data: DashboardData): AppNotif[] {
       tipo: "success",
       titulo: "Buen ritmo de ventas",
       mensaje: `${pctMeta.toFixed(0)}% de la meta mensual — ¡sigan así!`,
-      href: "/comercial",
+      href: "/comercial#meta",
     });
   }
 
@@ -130,7 +130,7 @@ export function generarNotificaciones(data: DashboardData): AppNotif[] {
       tipo: "celebration",
       titulo: `¡${top.nombre.split(" ")[0]} alcanzó su meta! 🏆`,
       mensaje: `${fmtK(top.total)} vendidos — ${pctVend}% de su objetivo personal`,
-      href: "/comercial",
+      href: "/comercial#vendedores",
     });
   }
 

@@ -393,7 +393,7 @@ export default function ComercialKPIs() {
           </div>
 
           {/* ── Fila 2: Evolución + Vendedor estrella ── */}
-          <div className={`grid grid-cols-1 gap-6 lg:grid-cols-3${dimmed}`}>
+          <div id="meta" className={`grid grid-cols-1 gap-6 lg:grid-cols-3 scroll-mt-8${dimmed}`}>
             <section className="lg:col-span-2 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100">
               <div className="flex items-center gap-2 border-b border-gray-50 px-6 py-4">
                 <TrendingUp className="h-4 w-4 text-indigo-500" />
@@ -405,7 +405,7 @@ export default function ComercialKPIs() {
               </div>
             </section>
 
-            <section className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100">
+            <section id="vendedores" className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 scroll-mt-8">
               <div className="flex items-center gap-2 border-b border-gray-50 px-6 py-4">
                 <Star className="h-4 w-4 text-amber-500" fill="#f59e0b" />
                 <h2 className="text-sm font-bold text-gray-800" style={{ fontFamily: "var(--font-syne)" }}>Vendedor estrella</h2>

@@ -24,9 +24,9 @@ function diasDesde(iso: string) {
 
 type Nivel = "rojo" | "amarillo" | "verde";
 
-function SemaforoCard({ nivel, titulo, valor, detalle, icon: Icon, children }: {
+function SemaforoCard({ nivel, titulo, valor, detalle, icon: Icon, children, id }: {
   nivel: Nivel; titulo: string; valor: string; detalle: string;
-  icon: React.ElementType; children?: React.ReactNode;
+  icon: React.ElementType; children?: React.ReactNode; id?: string;
 }) {
   const s = {
     rojo:     { border: "border-rose-200",    dot: "bg-rose-500",    val: "text-rose-600",    iconBg: "bg-rose-50" },
@@ -34,7 +34,7 @@ function SemaforoCard({ nivel, titulo, valor, detalle, icon: Icon, children }: {
     verde:    { border: "border-emerald-200", dot: "bg-emerald-500", val: "text-emerald-600", iconBg: "bg-emerald-50" },
   }[nivel];
   return (
-    <div className={`flex flex-col rounded-2xl border bg-white p-6 shadow-sm ${s.border}`}>
+    <div id={id} className={`flex flex-col rounded-2xl border bg-white p-6 shadow-sm scroll-mt-20 ${s.border}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <span className={`h-2.5 w-2.5 rounded-full ${s.dot} animate-pulse`} />
@@ -114,7 +114,7 @@ export default function SemaforoKPIs() {
       {!data ? <Skeleton /> : (
         <div className={loading ? "opacity-50 pointer-events-none" : ""}>
           <div className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <SemaforoCard nivel={nivelMerma} titulo="Fuga por merma" valor={fmt(totalMerma)}
+            <SemaforoCard id="mermas" nivel={nivelMerma} titulo="Fuga por merma" valor={fmt(totalMerma)}
               detalle={`${mermaRows.length} registro${mermaRows.length !== 1 ? "s" : ""} · ${pLabel}`} icon={Flame}>
               {mermaRows.slice(0, 3).map((r: any) => {
                 const nombre = (r.productos as { nombre: string } | null)?.nombre ?? "Producto";
@@ -130,7 +130,7 @@ export default function SemaforoKPIs() {
               })}
             </SemaforoCard>
 
-            <SemaforoCard nivel={nivelDesabasto} titulo="Desabasto crítico"
+            <SemaforoCard id="desabasto" nivel={nivelDesabasto} titulo="Desabasto crítico"
               valor={desabasto.length === 0 ? "Sin alertas" : `${desabasto.length} producto${desabasto.length > 1 ? "s" : ""}`}
               detalle={desabasto.length === 0 ? "Todos tienen stock suficiente" : "Stock igual o por debajo del mínimo"} icon={Package}>
               {(desabasto as any[]).slice(0, 4).map((p) => (
@@ -144,7 +144,7 @@ export default function SemaforoKPIs() {
               ))}
             </SemaforoCard>
 
-            <SemaforoCard nivel={nivelClientes} titulo="Clientes sin compra +30 días"
+            <SemaforoCard id="clientes" nivel={nivelClientes} titulo="Clientes sin compra +30 días"
               valor={enRiesgo.length === 0 ? "Ninguno" : `${enRiesgo.length} cliente${enRiesgo.length > 1 ? "s" : ""}`}
               detalle={enRiesgo.length === 0 ? "Todos han comprado en los últimos 30 días" : "Ordenados del más crítico al menos"} icon={Wallet}>
               {(enRiesgo as any[]).slice(0, 3).map((c) => {
@@ -162,7 +162,7 @@ export default function SemaforoKPIs() {
             </SemaforoCard>
           </div>
 
-          <div className="mb-5 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+          <div id="meta" className="mb-5 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 scroll-mt-20">
             <div className="flex items-center gap-2 mb-5">
               <Target className="h-5 w-5 text-indigo-500" />
               <h2 className="text-sm font-bold text-gray-800" style={{ fontFamily: "var(--font-syne)" }}>Meta Comercial del Mes</h2>

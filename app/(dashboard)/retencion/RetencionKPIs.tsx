@@ -56,7 +56,7 @@ export default function RetencionKPIs() {
       {!data ? <Skeleton /> : (
         <div className={`grid grid-cols-1 gap-6 lg:grid-cols-2${loading ? " opacity-50 pointer-events-none" : ""}`}>
           {/* Antichurn */}
-          <section className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100">
+          <section id="churn" className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100">
             <div className="flex items-center justify-between border-b border-gray-50 px-6 py-4">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-500" />

@@ -93,6 +93,7 @@ export function NotificationBell({ variant = "sidebar" }: { variant?: "sidebar" 
             body: n.mensaje,
             icon: "/icon-192.png",
             tag: n.id,
+            data: { url: n.href ?? "/dashboard" },
           });
         } catch {}
       });
