@@ -8,6 +8,7 @@ import {
   BarChart3, AlertTriangle, Users, Zap,
   DollarSign, FolderUp, Bot, Menu, X, LogOut,
 } from "lucide-react";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const NAV = [
   {
@@ -54,13 +55,16 @@ export function MobileNav() {
               BI<span className="text-indigo-600">-Corp</span>
             </span>
           </div>
-          <button
-            onClick={() => setOpen(true)}
-            aria-label="Abrir menú"
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 text-gray-600 active:bg-gray-200 transition-colors"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <NotificationBell variant="mobile" />
+            <button
+              onClick={() => setOpen(true)}
+              aria-label="Abrir menú"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 text-gray-600 active:bg-gray-200 transition-colors"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </div>
 

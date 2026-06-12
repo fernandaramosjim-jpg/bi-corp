@@ -12,6 +12,7 @@ import {
   Bot,
   LogOut,
 } from "lucide-react";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const NAV = [
   {
@@ -84,6 +85,9 @@ export function Sidebar() {
         >
           BI<span className="text-indigo-600">-Corp</span>
         </span>
+        <div className="ml-auto">
+          <NotificationBell variant="sidebar" />
+        </div>
       </div>
 
       {/* Nav */}

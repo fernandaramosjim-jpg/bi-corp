@@ -131,7 +131,10 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <DashboardContext.Provider value={{ periodo, setPeriodo, data, loading, productos, clientes }}>
-      {loading ? <LoadingScreen /> : children}
+      {loading && <LoadingScreen />}
+      <div className={loading ? "invisible" : undefined}>
+        {children}
+      </div>
     </DashboardContext.Provider>
   );
 }
