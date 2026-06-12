@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { periodoLabel } from "@/lib/date-range";
 import { DateFilter } from "@/components/DateFilter";
 import { useDashboard } from "@/context/DashboardContext";
@@ -64,6 +64,14 @@ function Skeleton() {
 
 export default function SemaforoKPIs() {
   const { periodo, setPeriodo, data, loading } = useDashboard();
+
+  useEffect(() => {
+    if (!data) return;
+    const hash = window.location.hash.slice(1);
+    if (!hash) return;
+    const el = document.getElementById(hash);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [data]);
 
   const mermaRows   = data?.mermas.rows ?? [];
   const totalMerma  = data?.mermas.totalCosto ?? 0;
