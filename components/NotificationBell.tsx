@@ -108,7 +108,7 @@ export function NotificationBell({ variant = "sidebar" }: { variant?: "sidebar" 
 
   const dropdownPos = variant === "mobile"
     ? "right-0 top-full mt-2"
-    : "left-full bottom-0 ml-3";
+    : "left-full top-0 ml-3";
 
   const btnClass = variant === "mobile"
     ? "h-9 w-9 rounded-xl bg-gray-100 hover:bg-gray-200 active:bg-gray-300"
