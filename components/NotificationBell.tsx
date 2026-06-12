@@ -87,15 +87,22 @@ export function NotificationBell({ variant = "sidebar" }: { variant?: "sidebar" 
       setTimeout(() => Notification.requestPermission(), 4000);
     }
     if (Notification.permission === "granted") {
-      criticas.forEach((n) => {
-        try {
-          new Notification(`BI-Corp · ${n.titulo}`, {
+      // Usar registration.showNotification() para que el SW maneje el click
+      navigator.serviceWorker?.ready.then((reg) => {
+        criticas.forEach((n) => {
+          reg.showNotification(`BI-Corp · ${n.titulo}`, {
             body: n.mensaje,
             icon: "/icon-192.png",
+            badge: "/icon-192.png",
             tag: n.id,
             data: { url: n.href ?? "/dashboard" },
           });
-        } catch {}
+        });
+      }).catch(() => {
+        // Fallback sin SW: new Notification no navega pero al menos avisa
+        criticas.forEach((n) => {
+          try { new Notification(`BI-Corp · ${n.titulo}`, { body: n.mensaje, icon: "/icon-192.png", tag: n.id }); } catch {}
+        });
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
