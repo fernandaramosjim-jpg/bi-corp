@@ -119,37 +119,34 @@ export function NotificationBell({ variant = "sidebar" }: { variant?: "sidebar" 
     return () => document.removeEventListener("mousedown", onOutside);
   }, []);
 
-  // Notificación del browser para alertas críticas
+  // Suscripción al push service y pedir permiso
   useEffect(() => {
-    if (!data || !notifs.length) return;
-    if (!("Notification" in window)) return;
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
 
-    const criticas = notifs.filter(
-      (n) => !vistas.has(n.id) && (n.tipo === "error" || n.tipo === "celebration")
-    );
-    if (!criticas.length) return;
+    async function suscribir() {
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") return;
 
-    if (Notification.permission === "default") {
-      setTimeout(() => Notification.requestPermission(), 4000);
-    }
-    if (Notification.permission === "granted") {
-      // Usar registration.showNotification() para que el SW maneje el click
-      navigator.serviceWorker?.ready.then((reg) => {
-        criticas.forEach((n) => {
-          reg.showNotification(`BI-Corp · ${n.titulo}`, {
-            body: n.mensaje,
-            icon: "/icon-192.png",
-            badge: "/icon-192.png",
-            tag: n.id,
-            data: { url: n.href ?? "/dashboard" },
-          });
-        });
-      }).catch(() => {
-        // Fallback sin SW: new Notification no navega pero al menos avisa
-        criticas.forEach((n) => {
-          try { new Notification(`BI-Corp · ${n.titulo}`, { body: n.mensaje, icon: "/icon-192.png", tag: n.id }); } catch {}
-        });
+      const reg = await navigator.serviceWorker.ready;
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) return; // ya está suscrito
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
       });
+
+      await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sub),
+      });
+    }
+
+    // Pedir permiso y suscribir tras 4s si hay alertas críticas
+    if (notifs.some((n) => n.tipo === "error" || n.tipo === "celebration")) {
+      const t = setTimeout(suscribir, 4000);
+      return () => clearTimeout(t);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);

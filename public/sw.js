@@ -31,6 +31,21 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// ── Push: recibe mensaje del servidor y muestra notificación ────────────────
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+  const d = event.data.json();
+  event.waitUntil(
+    self.registration.showNotification(d.titulo ?? "BI-Corp", {
+      body:  d.mensaje ?? "",
+      icon:  "/icon-192.png",
+      badge: "/icon-192.png",
+      tag:   d.id ?? "bi-corp",
+      data:  { url: d.href ?? "/dashboard" },
+    })
+  );
+});
+
 // ── Notificationclick: abre/enfoca la URL del dato ──────────────────────────
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
