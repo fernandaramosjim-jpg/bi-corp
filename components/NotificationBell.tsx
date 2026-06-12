@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Bell, X, AlertCircle, AlertTriangle, CheckCircle2, Sparkles, ChevronRight } from "lucide-react";
 import { useDashboard } from "@/context/DashboardContext";
 import { generarNotificaciones, type AppNotif, type TipoNotif } from "@/lib/notifications";
@@ -50,9 +51,29 @@ function NotifRow({ n, onClose }: { n: AppNotif; onClose: () => void }) {
 
 export function NotificationBell({ variant = "sidebar" }: { variant?: "sidebar" | "mobile" }) {
   const { data } = useDashboard();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [vistas, setVistas] = useState<Set<string>>(new Set());
   const ref = useRef<HTMLDivElement>(null);
+
+  // Escuchar navegación enviada por el SW al hacer clic en push notification
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    function onSwMessage(event: MessageEvent) {
+      if (event.data?.type !== "SW_NAVIGATE" || !event.data?.url) return;
+      const [path, hash] = (event.data.url as string).split("#");
+      router.push(path);
+      if (hash) {
+        // Scroll al anchor después de que la página y datos carguen
+        setTimeout(() => {
+          const el = document.getElementById(hash);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 1800);
+      }
+    }
+    navigator.serviceWorker.addEventListener("message", onSwMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", onSwMessage);
+  }, [router]);
 
   const notifs = data ? generarNotificaciones(data) : [];
   const noVistas = notifs.filter((n) => !vistas.has(n.id));

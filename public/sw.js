@@ -35,17 +35,17 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = event.notification.data?.url ?? "/dashboard";
+  const fullUrl = self.location.origin + url;
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
-      // Si ya hay una pestaña abierta del app, navega ahí
-      for (const client of clients) {
-        if (client.url.includes(self.location.origin) && "focus" in client) {
-          client.navigate(url);
-          return client.focus();
-        }
+      const appClient = clients.find((c) => c.url.startsWith(self.location.origin));
+      if (appClient) {
+        // Decirle al app que navegue al anchor via postMessage, luego enfocar
+        appClient.postMessage({ type: "SW_NAVIGATE", url });
+        return appClient.focus();
       }
-      // Si no, abre una nueva pestaña
-      return self.clients.openWindow(url);
+      // Sin pestaña abierta: abrir nueva con la URL completa
+      return self.clients.openWindow(fullUrl);
     })
   );
 });
