@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, X, AlertCircle, AlertTriangle, CheckCircle2, Sparkles, ChevronRight } from "lucide-react";
+import { Bell, X, AlertCircle, AlertTriangle, CheckCircle2, Sparkles, ChevronRight, BellRing } from "lucide-react";
 import { useDashboard } from "@/context/DashboardContext";
 import { generarNotificaciones, type AppNotif, type TipoNotif } from "@/lib/notifications";
 
@@ -79,7 +79,17 @@ export function NotificationBell({ variant = "sidebar" }: { variant?: "sidebar" 
     if (typeof window === "undefined") return new Set();
     return loadSeen();
   });
+  const [pushActivo, setPushActivo] = useState(false);
+  const [suscribiendo, setSuscribiendo] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  // Verificar si ya hay suscripción activa al montar
+  useEffect(() => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    navigator.serviceWorker.ready.then((reg) =>
+      reg.pushManager.getSubscription().then((sub) => setPushActivo(!!sub))
+    ).catch(() => {});
+  }, []);
 
   // Escuchar navegación enviada por el SW al hacer clic en push notification
   useEffect(() => {
@@ -89,7 +99,6 @@ export function NotificationBell({ variant = "sidebar" }: { variant?: "sidebar" 
       const [path, hash] = (event.data.url as string).split("#");
       router.push(path);
       if (hash) {
-        // Scroll al anchor después de que la página y datos carguen
         setTimeout(() => {
           const el = document.getElementById(hash);
           if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -103,7 +112,6 @@ export function NotificationBell({ variant = "sidebar" }: { variant?: "sidebar" 
   const notifs = data ? generarNotificaciones(data) : [];
   const noVistas = notifs.filter((n) => !vistas.has(n.id));
 
-  // Prioridad del badge: error > warning > celebration > success
   const topTipo: TipoNotif | null = noVistas.length === 0 ? null
     : noVistas.some((n) => n.tipo === "error")       ? "error"
     : noVistas.some((n) => n.tipo === "warning")     ? "warning"
@@ -119,37 +127,30 @@ export function NotificationBell({ variant = "sidebar" }: { variant?: "sidebar" 
     return () => document.removeEventListener("mousedown", onOutside);
   }, []);
 
-  // Suscripción al push service y pedir permiso
-  useEffect(() => {
+  // Llamado desde el botón — requiere gesto del usuario (funciona en iOS)
+  async function activarPush() {
     if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
-
-    async function suscribir() {
+    setSuscribiendo(true);
+    try {
       const perm = await Notification.requestPermission();
-      if (perm !== "granted") return;
-
+      if (perm !== "granted") { setSuscribiendo(false); return; }
       const reg = await navigator.serviceWorker.ready;
-      const existing = await reg.pushManager.getSubscription();
-      if (existing) return; // ya está suscrito
-
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-      });
-
-      await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(sub),
-      });
-    }
-
-    // Pedir permiso y suscribir tras 4s si hay alertas críticas
-    if (notifs.some((n) => n.tipo === "error" || n.tipo === "celebration")) {
-      const t = setTimeout(suscribir, 4000);
-      return () => clearTimeout(t);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]);
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+        });
+        await fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sub),
+        });
+      }
+      setPushActivo(true);
+    } catch {}
+    setSuscribiendo(false);
+  }
 
   function toggle() {
     const next = !open;
@@ -160,6 +161,11 @@ export function NotificationBell({ variant = "sidebar" }: { variant?: "sidebar" 
       saveSeen(nuevas);
     }
   }
+
+  const soportaPush = typeof window !== "undefined"
+    && "Notification" in window
+    && "serviceWorker" in navigator
+    && "PushManager" in window;
 
   const dropdownPos = variant === "mobile"
     ? "right-0 top-full mt-2"
@@ -225,7 +231,22 @@ export function NotificationBell({ variant = "sidebar" }: { variant?: "sidebar" 
           )}
 
           {/* Footer */}
-          <div className="border-t border-gray-50 px-4 py-2">
+          <div className="border-t border-gray-50 px-4 py-2.5 flex flex-col gap-2">
+            {soportaPush && !pushActivo && (
+              <button
+                onClick={activarPush}
+                disabled={suscribiendo}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 active:bg-indigo-800 transition-colors disabled:opacity-60"
+              >
+                <BellRing className="h-3.5 w-3.5" />
+                {suscribiendo ? "Activando…" : "Activar notificaciones push"}
+              </button>
+            )}
+            {soportaPush && pushActivo && (
+              <p className="text-[10px] text-center text-emerald-500 font-medium">
+                ✓ Notificaciones push activas
+              </p>
+            )}
             <p className="text-[10px] text-center text-gray-400">
               {notifs.length} alerta{notifs.length !== 1 ? "s" : ""} · datos en tiempo real
             </p>
