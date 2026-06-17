@@ -85,9 +85,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const alertas = await generarAlertas();
-  if (!alertas.length) {
-    return NextResponse.json({ enviados: 0, mensaje: "Sin alertas críticas" });
+  const todasAlertas = await generarAlertas();
+  if (!todasAlertas.length) {
+    return NextResponse.json({ enviados: 0, mensaje: "Sin alertas activas" });
+  }
+
+  // Filtrar solo alertas que NO se han enviado hoy
+  const hoy = new Date().toISOString().slice(0, 10);
+  const { data: yaEnviadas } = await sb
+    .from("push_log")
+    .select("alert_id")
+    .eq("sent_date", hoy);
+
+  const yaEnviadasSet = new Set((yaEnviadas ?? []).map((r: any) => r.alert_id));
+  const nuevasAlertas = todasAlertas.filter((a) => !yaEnviadasSet.has(a.id));
+
+  if (!nuevasAlertas.length) {
+    return NextResponse.json({ enviados: 0, mensaje: "Sin alertas nuevas hoy" });
   }
 
   // Obtener todas las suscripciones
@@ -104,7 +118,7 @@ export async function POST(req: NextRequest) {
       endpoint: sub.endpoint,
       keys: { p256dh: sub.p256dh, auth: sub.auth },
     };
-    for (const alerta of alertas) {
+    for (const alerta of nuevasAlertas) {
       try {
         await webpush.sendNotification(pushSub, JSON.stringify({
           titulo: `BI-Corp · ${alerta.titulo}`,
@@ -114,7 +128,6 @@ export async function POST(req: NextRequest) {
         }));
         enviados++;
       } catch (err: any) {
-        // 404/410 = suscripción expirada, borrarla
         if (err.statusCode === 404 || err.statusCode === 410) {
           expiradas.push(sub.endpoint);
         }
@@ -122,10 +135,18 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Registrar alertas enviadas hoy para no repetirlas
+  if (enviados > 0) {
+    await sb.from("push_log").upsert(
+      nuevasAlertas.map((a) => ({ alert_id: a.id, sent_date: hoy })),
+      { onConflict: "alert_id,sent_date" }
+    );
+  }
+
   // Limpiar suscripciones expiradas
   for (const endpoint of expiradas) {
     await sb.from("push_subscriptions").delete().eq("endpoint", endpoint);
   }
 
-  return NextResponse.json({ enviados, alertas: alertas.length, expiradas: expiradas.length });
+  return NextResponse.json({ enviados, nuevas: nuevasAlertas.length, omitidas: yaEnviadasSet.size, expiradas: expiradas.length });
 }
