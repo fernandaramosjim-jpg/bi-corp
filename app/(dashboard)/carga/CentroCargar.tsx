@@ -7,7 +7,7 @@ import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase";
 import {
   Upload, FileSpreadsheet, CheckCircle2, AlertCircle,
-  Loader2, Plus, X, ChevronDown, Info, Flame, Download,
+  Loader2, Plus, X, ChevronDown, Info, Flame, Download, ShoppingCart,
 } from "lucide-react";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -15,6 +15,7 @@ import {
 type Producto = { id: number; nombre: string; costo_proveedor: number; precio_venta: number };
 type Cliente  = { id: number; nombre: string };
 type Tab      = "manual" | "masiva";
+type TabManual = "merma" | "venta";
 type TablaDest = "mermas" | "ventas";
 type ToastT   = "success" | "error" | "info";
 
@@ -70,7 +71,8 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Tabs
-  const [tab, setTab] = useState<Tab>("manual");
+  const [tab, setTab]           = useState<Tab>("manual");
+  const [tabManual, setTabManual] = useState<TabManual>("merma");
 
   // Toast
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -115,6 +117,50 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
       notify("error", "Error al guardar", e.message ?? "No se pudo insertar el registro en Supabase");
     } finally {
       setSaving(false);
+    }
+  }
+
+  // ── Estado: Captura Manual Ventas ────────────────────────────────────────
+  const [clienteId,    setClienteId]    = useState("");
+  const [ventaProdId,  setVentaProdId]  = useState("");
+  const [ventaCantidad,setVentaCantidad]= useState("");
+  const [ventaMonto,   setVentaMonto]   = useState("");
+  const [fechaVenta,   setFechaVenta]   = useState(new Date().toISOString().slice(0, 10));
+  const [savingVenta,  setSavingVenta]  = useState(false);
+  const [montoManual,  setMontoManual]  = useState(false);
+
+  const ventaProdSel = productos.find(p => String(p.id) === ventaProdId);
+  const montoCalc = ventaProdSel && Number(ventaCantidad) > 0
+    ? Math.round(ventaProdSel.precio_venta * Number(ventaCantidad) * 100) / 100
+    : 0;
+  const montoMostrado = montoManual ? ventaMonto : (montoCalc > 0 ? String(montoCalc) : "");
+
+  async function guardarVenta() {
+    if (!clienteId)                   return notify("error", "Campo requerido", "Selecciona un cliente");
+    if (!ventaProdId)                 return notify("error", "Campo requerido", "Selecciona un producto");
+    if (Number(ventaCantidad) <= 0)   return notify("error", "Campo requerido", "Ingresa una cantidad mayor a 0");
+    const monto = montoManual ? Number(ventaMonto) : montoCalc;
+    if (monto <= 0)                   return notify("error", "Campo requerido", "El monto total debe ser mayor a 0");
+
+    setSavingVenta(true);
+    try {
+      const { error } = await supabase.from("ventas").insert({
+        cliente_id:  Number(clienteId),
+        producto_id: Number(ventaProdId),
+        fecha_venta: `${fechaVenta}T${new Date().toTimeString().slice(0, 8)}`,
+        cantidad:    Number(ventaCantidad),
+        monto_total: monto,
+      });
+      if (error) throw error;
+
+      notify("success", "¡Venta registrada!", `$${monto.toLocaleString("es-MX")} MXN guardados correctamente.`);
+      setClienteId(""); setVentaProdId(""); setVentaCantidad(""); setVentaMonto(""); setMontoManual(false);
+      setFechaVenta(new Date().toISOString().slice(0, 10));
+      router.refresh();
+    } catch (e: any) {
+      notify("error", "Error al guardar", e.message ?? "No se pudo insertar la venta en Supabase");
+    } finally {
+      setSavingVenta(false);
     }
   }
 
@@ -324,9 +370,27 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
           TAB: CAPTURA MANUAL
       ══════════════════════════════════════════════════════════════════ */}
       {tab === "manual" && (
+        <div className="space-y-6">
+
+          {/* Sub-tabs: Merma / Venta */}
+          <div className="flex gap-1 rounded-xl bg-gray-100 p-1 w-fit">
+            {([
+              { id: "merma" as TabManual, Icon: Flame,         label: "Registrar Merma",  color: "text-rose-600"   },
+              { id: "venta" as TabManual, Icon: ShoppingCart,  label: "Registrar Venta",  color: "text-emerald-600"},
+            ]).map(({ id, Icon, label, color }) => (
+              <button key={id} onClick={() => setTabManual(id)}
+                className={`flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-all ${
+                  tabManual === id ? `bg-white shadow-sm ${color}` : "text-gray-500 hover:text-gray-700"
+                }`}>
+                <Icon className="h-4 w-4" /> {label}
+              </button>
+            ))}
+          </div>
+
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
-          {/* Formulario */}
+          {/* ── Formulario Merma ── */}
+          {tabManual === "merma" && (<>
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
             <div className="flex items-center gap-2 mb-1">
               <Flame className="h-4 w-4 text-rose-500" />
@@ -411,7 +475,7 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
             </div>
           </div>
 
-          {/* Panel de ayuda lateral */}
+          {/* Panel lateral Merma */}
           <div className="space-y-4">
             <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-5">
               <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide mb-3">¿Cómo funciona?</p>
@@ -430,8 +494,6 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
                 ))}
               </ol>
             </div>
-
-            {/* Resumen de productos cargados */}
             <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
               <p className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-3">
                 Productos disponibles ({productos.length})
@@ -448,6 +510,143 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
               </div>
             </div>
           </div>
+          </>)}
+
+          {/* ── Formulario Venta ── */}
+          {tabManual === "venta" && (<>
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+            <div className="flex items-center gap-2 mb-1">
+              <ShoppingCart className="h-4 w-4 text-emerald-500" />
+              <h2 className="text-base font-bold text-gray-900" style={{ fontFamily: "var(--font-syne)" }}>
+                Registrar venta
+              </h2>
+            </div>
+            <p className="text-xs text-gray-400 mb-6">El monto total se calcula con el precio de venta del producto</p>
+
+            <div className="space-y-4">
+              {/* Cliente */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  Cliente <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <select value={clienteId} onChange={e => setClienteId(e.target.value)}
+                    className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all pr-9">
+                    <option value="">— Selecciona un cliente —</option>
+                    {clientes.map(c => (
+                      <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                </div>
+              </div>
+
+              {/* Producto */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  Producto <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <select value={ventaProdId} onChange={e => { setVentaProdId(e.target.value); setVentaCantidad(""); setMontoManual(false); }}
+                    className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all pr-9">
+                    <option value="">— Selecciona un producto —</option>
+                    {productos.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.nombre} · precio ${p.precio_venta.toLocaleString("es-MX")}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                </div>
+              </div>
+
+              {/* Fecha */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  Fecha <span className="text-rose-500">*</span>
+                </label>
+                <input type="date" value={fechaVenta}
+                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={e => setFechaVenta(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all" />
+              </div>
+
+              {/* Cantidad + preview monto */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  Cantidad <span className="text-rose-500">*</span>
+                </label>
+                <input type="number" min="1" step="1" placeholder="ej. 10" value={ventaCantidad}
+                  onChange={e => { setVentaCantidad(e.target.value); setMontoManual(false); }}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all" />
+
+                {montoCalc > 0 && !montoManual && (
+                  <div className="mt-2.5 rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-2.5">
+                    <p className="text-xs text-emerald-800">
+                      💰 Monto calculado:{" "}
+                      <strong className="text-emerald-900 text-sm">${montoCalc.toLocaleString("es-MX")} MXN</strong>
+                    </p>
+                    <p className="text-[10px] text-emerald-600 mt-0.5">
+                      {ventaCantidad} × ${ventaProdSel?.precio_venta.toLocaleString("es-MX")} precio de venta
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Monto manual (override) */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  Monto total <span className="text-gray-400 font-normal">(opcional — sobrescribe el cálculo)</span>
+                </label>
+                <input type="number" min="0" step="0.01" placeholder={montoCalc > 0 ? `${montoCalc} (calculado)` : "ej. 6800"}
+                  value={montoManual ? ventaMonto : ""}
+                  onChange={e => { setVentaMonto(e.target.value); setMontoManual(true); }}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all" />
+              </div>
+
+              {/* Botón */}
+              <button onClick={guardarVenta}
+                disabled={savingVenta || !clienteId || !ventaProdId || Number(ventaCantidad) <= 0 || (montoManual ? Number(ventaMonto) <= 0 : montoCalc <= 0)}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+                {savingVenta
+                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Guardando en Supabase…</>
+                  : <><Plus className="h-4 w-4" /> Registrar Venta</>}
+              </button>
+            </div>
+          </div>
+
+          {/* Panel lateral Venta */}
+          <div className="space-y-4">
+            <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-5">
+              <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-3">¿Cómo funciona?</p>
+              <ol className="space-y-2.5">
+                {[
+                  "Selecciona el cliente que realizó la compra",
+                  "Elige el producto vendido del catálogo",
+                  "Ingresa la cantidad de unidades",
+                  "El monto se calcula automáticamente con el precio de venta",
+                  "Puedes sobrescribir el monto si hubo descuento o precio especial",
+                ].map((step, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-xs text-emerald-700">
+                    <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-200 text-[10px] font-bold text-emerald-800">{i + 1}</span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
+              <p className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-3">
+                Clientes ({clientes.length})
+              </p>
+              <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                {clientes.map(c => (
+                  <div key={c.id} className="text-xs text-gray-700 truncate">{c.nombre}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+          </>)}
+        </div>
         </div>
       )}
 

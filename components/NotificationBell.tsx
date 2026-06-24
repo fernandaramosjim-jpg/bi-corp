@@ -75,10 +75,11 @@ export function NotificationBell({ variant = "sidebar" }: { variant?: "sidebar" 
   const { data } = useDashboard();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [vistas, setVistas] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    return loadSeen();
-  });
+  const [vistas, setVistas] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setVistas(loadSeen());
+  }, []);
   const [pushActivo, setPushActivo] = useState(false);
   const [suscribiendo, setSuscribiendo] = useState(false);
   const ref = useRef<HTMLDivElement>(null);

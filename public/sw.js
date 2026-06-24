@@ -38,8 +38,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(d.titulo ?? "BI-Corp", {
       body:  d.mensaje ?? "",
-      icon:  "/icon-192.png",
-      badge: "/icon-192.png",
+      icon:  "/icon",
+      badge: "/icon",
       tag:   d.id ?? "bi-corp",
       data:  { url: d.href ?? "/dashboard" },
     })
