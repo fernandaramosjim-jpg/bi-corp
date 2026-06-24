@@ -13,6 +13,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
+import { supabase } from "@/lib/supabase";
 
 const NAV = [
   {
@@ -151,7 +152,7 @@ export function Sidebar() {
           </p>
         </div>
         <button
-          onClick={() => router.push("/login")}
+          onClick={async () => { await supabase.auth.signOut(); router.push("/login"); }}
           aria-label="Cerrar sesión"
           title="Cerrar sesión"
           className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-rose-50 hover:text-rose-500 transition-colors"
