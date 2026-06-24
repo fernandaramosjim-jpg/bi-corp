@@ -4,7 +4,6 @@ import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
-import { supabase } from "@/lib/supabase";
 import {
   Upload, FileSpreadsheet, CheckCircle2, AlertCircle,
   Loader2, Plus, X, ChevronDown, Info, Flame, Download, ShoppingCart,
@@ -100,14 +99,13 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
 
     setSaving(true);
     try {
-      const { error } = await supabase.from("mermas").insert({
-        producto_id:      Number(prodId),
-        fecha_merma:      fechaMerma,
-        cantidad_perdida: Number(cantidad),
-        motivo:           motivo.trim(),
-        costo_perdida:    costoCalc,
+      const res = await fetch("/api/mermas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ producto_id: Number(prodId), fecha_merma: fechaMerma, cantidad_perdida: Number(cantidad), motivo: motivo.trim(), costo_perdida: costoCalc }),
       });
-      if (error) throw error;
+      const { error } = await res.json();
+      if (error) throw new Error(error);
 
       notify("success", "¡Merma registrada!", `Pérdida de $${costoCalc.toLocaleString("es-MX")} MXN guardada correctamente.`);
       setProdId(""); setCantidad(""); setMotivo("");
@@ -144,14 +142,13 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
 
     setSavingVenta(true);
     try {
-      const { error } = await supabase.from("ventas").insert({
-        cliente_id:  Number(clienteId),
-        producto_id: Number(ventaProdId),
-        fecha_venta: `${fechaVenta}T${new Date().toTimeString().slice(0, 8)}`,
-        cantidad:    Number(ventaCantidad),
-        monto_total: monto,
+      const res = await fetch("/api/ventas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cliente_id: Number(clienteId), producto_id: Number(ventaProdId), fecha_venta: `${fechaVenta}T${new Date().toTimeString().slice(0, 8)}`, cantidad: Number(ventaCantidad), monto_total: monto }),
       });
-      if (error) throw error;
+      const { error } = await res.json();
+      if (error) throw new Error(error);
 
       notify("success", "¡Venta registrada!", `$${monto.toLocaleString("es-MX")} MXN guardados correctamente.`);
       setClienteId(""); setVentaProdId(""); setVentaCantidad(""); setVentaMonto(""); setMontoManual(false);
@@ -268,8 +265,9 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
           notify("error", "Sin datos válidos", "Ninguna fila pasó la validación. Revisa el mapeo de columnas.");
           setUploading(false); return;
         }
-        const { error } = await supabase.from("mermas").insert(payload);
-        if (error) throw error;
+        const r = await fetch("/api/mermas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rows: payload }) });
+        const { error } = await r.json();
+        if (error) throw new Error(error);
         inserted = payload.length;
 
       } else {
@@ -301,8 +299,9 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
           notify("error", "Sin datos válidos", "Ninguna fila pasó la validación. Revisa el mapeo.");
           setUploading(false); return;
         }
-        const { error } = await supabase.from("ventas").insert(payload);
-        if (error) throw error;
+        const r = await fetch("/api/ventas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rows: payload }) });
+        const { error } = await r.json();
+        if (error) throw new Error(error);
         inserted = payload.length;
       }
 

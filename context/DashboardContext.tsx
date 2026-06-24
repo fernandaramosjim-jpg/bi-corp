@@ -3,13 +3,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { BarChart3 } from "lucide-react";
 import { PERIODOS, getPeriodoRange } from "@/lib/date-range";
-import {
-  getMermas, getVentasMes, getDesabastoCritico, getClientesEnRiesgo,
-  getTopProductosMes, getTopClientesMes, getMargenProductos,
-  getVentasPorDia, getVentasPorHora, getPareto,
-  getProductosBasic, getClientesBasic,
-  getVentasPorFecha, getRankingVendedores,
-} from "@/lib/supabase";
 
 export type DashboardData = {
   mermas: { rows: any[]; totalCosto: number };
@@ -52,80 +45,67 @@ function LoadingScreen() {
       <p className="text-sm text-gray-400 mb-10">Preparando tu dashboard…</p>
       <div className="flex gap-2.5">
         {[0, 1, 2].map(i => (
-          <div
-            key={i}
-            className="h-2.5 w-2.5 rounded-full bg-indigo-600 animate-bounce"
-            style={{ animationDelay: `${i * 0.18}s` }}
-          />
+          <div key={i} className="h-2.5 w-2.5 rounded-full bg-indigo-600 animate-bounce"
+            style={{ animationDelay: `${i * 0.18}s` }} />
         ))}
       </div>
     </div>
   );
 }
 
+async function fetchDashboard(periodo: string): Promise<DashboardData & { productos: any[]; clientes: any[] }> {
+  const rango = getPeriodoRange(periodo);
+  const params = new URLSearchParams();
+  if (rango?.from) params.set("from", rango.from);
+  if (rango?.to)   params.set("to",   rango.to);
+  const res = await fetch(`/api/dashboard?${params}`);
+  if (!res.ok) throw new Error("Error cargando datos");
+  return res.json();
+}
+
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [periodo, setPeriodo] = useState("mes_actual");
-  const [cache, setCache] = useState<DataCache>({});
+  const [cache, setCache]     = useState<DataCache>({});
   const [loading, setLoading] = useState(true);
   const [productos, setProductos] = useState<any[]>([]);
-  const [clientes, setClientes] = useState<any[]>([]);
+  const [clientes,  setClientes]  = useState<any[]>([]);
 
+  // Carga inicial: fetch del período actual
   useEffect(() => {
-    const periodoKeys = PERIODOS.map(p => p.key);
-
-    const sharedPromise = Promise.all([
-      getDesabastoCritico().catch(() => []),
-      getClientesEnRiesgo(30).catch(() => []),
-      getClientesEnRiesgo(35).catch(() => []),
-      getProductosBasic().catch(() => []),
-      getClientesBasic().catch(() => []),
-    ]);
-
-    const periodosPromise = Promise.all(
-      periodoKeys.map(key => {
-        const rango = getPeriodoRange(key);
-        return Promise.all([
-          getMermas(rango).catch(() => ({ rows: [], totalCosto: 0 })),
-          getVentasMes(rango).catch(() => ({ total: 0, count: 0, unidades: 0 })),
-          getTopProductosMes(rango).catch(() => []),
-          getTopClientesMes(rango).catch(() => []),
-          getMargenProductos(rango).catch(() => []),
-          getVentasPorDia(rango).catch(() => []),
-          getVentasPorHora(rango).catch(() => []),
-          getPareto(rango).catch(() => []),
-          getVentasPorFecha(rango).catch(() => []),
-          getRankingVendedores(rango).catch(() => []),
-        ]);
-      })
-    );
-
-    Promise.all([sharedPromise, periodosPromise])
-      .then(([
-        [desabasto, enRiesgo30, enRiesgo35, prods, clis],
-        periodResults,
-      ]) => {
-        const newCache: DataCache = {};
-        periodoKeys.forEach((key, i) => {
-          const [
-            mermas, ventasMes, topProductos, topClientes, margenProductos,
-            ventasPorDia, ventasHora, pareto, ventasFecha, rankingVendedores,
-          ] = periodResults[i];
-          newCache[key] = {
-            mermas, ventasMes, desabasto, enRiesgo30, enRiesgo35,
-            topProductos, topClientes, margenProductos, ventasPorDia, ventasHora,
-            pareto, ventasFecha, rankingVendedores,
-          };
-        });
-        setCache(newCache);
+    fetchDashboard(periodo)
+      .then(json => {
+        const { productos: prods, clientes: clis, ...data } = json;
+        setCache(prev => ({ ...prev, [periodo]: data }));
         setProductos(prods);
         setClientes(clis);
         setLoading(false);
+
+        // Pre-carga el resto de períodos en segundo plano
+        const otros = PERIODOS.map(p => p.key).filter(k => k !== periodo);
+        otros.forEach(key => {
+          fetchDashboard(key).then(j => {
+            const { productos: _, clientes: __, ...d } = j;
+            setCache(prev => ({ ...prev, [key]: d }));
+          }).catch(() => {});
+        });
       })
-      .catch((err) => {
+      .catch(err => {
         console.error("[BI-Corp] Error cargando datos:", err);
         setLoading(false);
       });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Cuando cambia el período y no está en caché, lo carga
+  useEffect(() => {
+    if (cache[periodo] || loading) return;
+    fetchDashboard(periodo)
+      .then(json => {
+        const { productos: _, clientes: __, ...data } = json;
+        setCache(prev => ({ ...prev, [periodo]: data }));
+      })
+      .catch(() => {});
+  }, [periodo, cache, loading]);
 
   const data = cache[periodo] ?? null;
 
