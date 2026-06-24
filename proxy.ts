@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -23,7 +23,6 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
-  // Rutas públicas — no requieren sesión
   const isPublic =
     path === "/login" ||
     path.startsWith("/api/") ||
@@ -36,7 +35,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Si ya tiene sesión y va al login, lo manda al dashboard
   if (user && path === "/login") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
