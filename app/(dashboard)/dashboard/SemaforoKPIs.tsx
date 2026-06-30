@@ -11,7 +11,7 @@ import {
   AlertTriangle, CheckCircle2, Package, Wallet, Flame, TrendingUp,
 } from "lucide-react";
 
-const META_COMERCIAL = 200_000;
+const META_COMERCIAL = 500_000;
 
 function fmt(n: number) {
   return new Intl.NumberFormat("es-MX", {

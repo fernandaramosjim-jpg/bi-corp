@@ -13,7 +13,7 @@ const sb = createClient(
   process.env.SUPABASE_ANON_KEY!
 );
 
-const META_MES = 200_000;
+const META_MES = 500_000;
 
 function fmtK(n: number) {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
