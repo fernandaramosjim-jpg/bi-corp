@@ -27,6 +27,7 @@ type Ctx = {
   setPeriodo: (p: string) => void;
   data: DashboardData | null;
   loading: boolean;
+  refresh: () => void;
   productos: { id: number; nombre: string; costo_proveedor: number; precio_venta: number }[];
   clientes: { id: number; nombre: string }[];
 };
@@ -109,8 +110,17 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   const data = cache[periodo] ?? null;
 
+  function refresh() {
+    fetchDashboard(periodo).then(json => {
+      const { productos: prods, clientes: clis, ...d } = json;
+      setCache(prev => ({ ...prev, [periodo]: d }));
+      setProductos(prods);
+      setClientes(clis);
+    }).catch(() => {});
+  }
+
   return (
-    <DashboardContext.Provider value={{ periodo, setPeriodo, data, loading, productos, clientes }}>
+    <DashboardContext.Provider value={{ periodo, setPeriodo, data, loading, refresh, productos, clientes }}>
       {loading && <LoadingScreen />}
       <div className={loading ? "invisible" : undefined}>
         {children}

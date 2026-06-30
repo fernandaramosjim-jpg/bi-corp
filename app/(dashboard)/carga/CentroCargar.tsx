@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useDashboard } from "@/context/DashboardContext";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import {
@@ -67,6 +68,7 @@ function Toast({ t, onClose }: { t: ToastState; onClose: () => void }) {
 
 export default function CentroCargar({ productos, clientes }: { productos: Producto[]; clientes: Cliente[] }) {
   const router = useRouter();
+  const { refresh } = useDashboard();
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Tabs
@@ -110,6 +112,7 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
       notify("success", "¡Merma registrada!", `Pérdida de $${costoCalc.toLocaleString("es-MX")} MXN guardada correctamente.`);
       setProdId(""); setCantidad(""); setMotivo("");
       setFechaMerma(new Date().toISOString().slice(0, 10));
+      refresh();
       router.refresh();
     } catch (e: any) {
       notify("error", "Error al guardar", e.message ?? "No se pudo insertar el registro en Supabase");
@@ -162,6 +165,7 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
 
       setClienteId(""); setVentaProdId(""); setVentaCantidad(""); setVentaMonto(""); setMontoManual(false);
       setFechaVenta(new Date().toISOString().slice(0, 10));
+      refresh();
       router.refresh();
     } catch (e: any) {
       notify("error", "Error al guardar", e.message ?? "No se pudo insertar la venta en Supabase");
@@ -318,6 +322,7 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
       notify("success", `${inserted} registro${inserted > 1 ? "s" : ""} importados`,
         skipped > 0 ? `${skipped} fila${skipped > 1 ? "s" : ""} omitida${skipped > 1 ? "s" : ""} por datos incompletos.`
                     : "Todos los registros se cargaron correctamente.");
+      refresh();
       router.refresh();
 
     } catch (e: any) {
