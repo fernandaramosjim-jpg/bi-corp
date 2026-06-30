@@ -7,6 +7,7 @@ import {
 import { periodoLabel } from "@/lib/date-range";
 import { DateFilter } from "@/components/DateFilter";
 import { useDashboard } from "@/context/DashboardContext";
+import Link from "next/link";
 import {
   AlertTriangle, CheckCircle2, Package, Wallet, Flame, TrendingUp,
 } from "lucide-react";
@@ -264,11 +265,40 @@ export default function SemaforoKPIs() {
           <p className="text-sm text-gray-400 capitalize">Semáforo de control · {pLabel}</p>
         </div>
         {!!data && (alertasActivas > 0 ? (
-          <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 flex-shrink-0">
-            <AlertTriangle className="h-4 w-4 text-rose-500" />
-            <span className="text-sm font-semibold text-rose-700">
-              {alertasActivas} alerta{alertasActivas > 1 ? "s" : ""} activa{alertasActivas > 1 ? "s" : ""}
-            </span>
+          <div className="flex flex-wrap gap-2 justify-end">
+            {nivelMerma !== "verde" && (
+              <Link href="/dashboard#mermas"
+                className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80 ${
+                  nivelMerma === "rojo"
+                    ? "border-rose-200 bg-rose-50 text-rose-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700"
+                }`}>
+                <Flame className="h-3.5 w-3.5" />
+                Mermas: {fmtK(totalMerma)}
+              </Link>
+            )}
+            {nivelDesabasto !== "verde" && (
+              <Link href="/dashboard#desabasto"
+                className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80 ${
+                  nivelDesabasto === "rojo"
+                    ? "border-rose-200 bg-rose-50 text-rose-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700"
+                }`}>
+                <Package className="h-3.5 w-3.5" />
+                {desabasto.length} sin stock
+              </Link>
+            )}
+            {nivelClientes !== "verde" && (
+              <Link href="/retencion#churn"
+                className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80 ${
+                  nivelClientes === "rojo"
+                    ? "border-rose-200 bg-rose-50 text-rose-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700"
+                }`}>
+                <Wallet className="h-3.5 w-3.5" />
+                {enRiesgo.length} cliente{enRiesgo.length > 1 ? "s" : ""} inactivo{enRiesgo.length > 1 ? "s" : ""}
+              </Link>
+            )}
           </div>
         ) : (
           <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 flex-shrink-0">
