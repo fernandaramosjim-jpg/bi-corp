@@ -48,21 +48,28 @@ const MEDALS = ["🥇","🥈","🥉"];
 const BAR_COLOR = ["bg-indigo-500","bg-violet-500","bg-sky-500","bg-amber-400","bg-rose-400"];
 const ROW_BG = ["bg-indigo-50 ring-1 ring-indigo-100","bg-violet-50 ring-1 ring-violet-100","bg-sky-50 ring-1 ring-sky-100","bg-gray-50","bg-gray-50"];
 
-function LeaderRow({ nombre, total, maxTotal, rank, sub }: { nombre: string; total: number; maxTotal: number; rank: number; sub?: string }) {
-  const pct = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
+function LeaderRow({ nombre, total, totalGeneral, rank, sub }: {
+  nombre: string; total: number; totalGeneral: number; rank: number; sub?: string;
+}) {
+  const sharePct = totalGeneral > 0 ? (total / totalGeneral) * 100 : 0;
   const i = rank - 1;
   return (
     <div className={`flex items-center gap-3 rounded-xl p-3 ${ROW_BG[i] ?? "bg-gray-50"}`}>
       <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center">
-        {i < 3 ? <span className="text-xl">{MEDALS[i]}</span> : <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white ${BAR_COLOR[i] ?? "bg-gray-400"}`}>{rank}</span>}
+        {i < 3
+          ? <span className="text-xl">{MEDALS[i]}</span>
+          : <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white ${BAR_COLOR[i] ?? "bg-gray-400"}`}>{rank}</span>}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1.5">
           <p className="text-sm font-semibold text-gray-800 truncate">{nombre}</p>
-          <p className="text-sm font-bold text-gray-900 ml-2 flex-shrink-0">{fmtK(total)}</p>
+          <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+            <span className="text-[10px] font-semibold text-gray-400">{sharePct.toFixed(0)}%</span>
+            <span className="text-sm font-bold text-gray-900">{fmtK(total)}</span>
+          </div>
         </div>
         <div className="h-1.5 w-full rounded-full bg-white/70">
-          <div className={`h-1.5 rounded-full ${BAR_COLOR[i] ?? "bg-gray-300"}`} style={{ width: `${pct}%` }} />
+          <div className={`h-1.5 rounded-full ${BAR_COLOR[i] ?? "bg-gray-300"}`} style={{ width: `${Math.min(sharePct, 100)}%` }} />
         </div>
         {sub && <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>}
       </div>
@@ -193,8 +200,39 @@ function GraficaEvolucion({ datos }: { datos: { fecha: string; total: number }[]
 
 type Vendedor = { nombre: string; meta: number; total: number; count: number; rank: number };
 
-const VEND_BAR = ["bg-slate-300", "bg-amber-500", "bg-sky-400", "bg-indigo-300"];
-const VEND_BG  = ["bg-slate-50 ring-1 ring-slate-100", "bg-amber-50 ring-1 ring-amber-100", "bg-sky-50 ring-1 ring-sky-100", "bg-gray-50"];
+function VendedorRow({ v, medal }: { v: Vendedor; medal?: string }) {
+  const metaPct   = v.meta > 0 ? (v.total / v.meta) * 100 : 0;
+  const superada  = metaPct >= 100;
+  const barWidth  = Math.min(metaPct, 100);
+  const barColor  = superada ? "bg-emerald-500" : metaPct >= 70 ? "bg-indigo-500" : metaPct >= 40 ? "bg-amber-400" : "bg-rose-400";
+  const bg        = superada ? "bg-emerald-50 ring-1 ring-emerald-200" : "bg-gray-50 ring-1 ring-gray-100";
+
+  return (
+    <div className={`flex items-center gap-3 rounded-xl p-3 ${bg}`}>
+      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center text-lg">
+        {medal ?? <span className="text-sm font-bold text-gray-400">{v.rank}</span>}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-sm font-semibold text-gray-800 truncate">{v.nombre}</p>
+          <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+            {superada && <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">✓ Meta</span>}
+            <p className="text-xs font-bold text-gray-700">{fmtK(v.total)}</p>
+          </div>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-white/80">
+          <div className={`h-1.5 rounded-full transition-all ${barColor}`} style={{ width: `${barWidth}%` }} />
+        </div>
+        <div className="flex justify-between mt-0.5">
+          <p className={`text-[10px] font-semibold ${superada ? "text-emerald-600" : "text-gray-400"}`}>
+            {metaPct.toFixed(0)}% de meta
+          </p>
+          <p className="text-[10px] text-gray-400">{v.count} ventas · meta {fmtK(v.meta)}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function RankingVendedores({ ranking }: { ranking: Vendedor[] }) {
   if (!ranking.length) {
@@ -203,24 +241,29 @@ function RankingVendedores({ ranking }: { ranking: Vendedor[] }) {
         <Star className="h-10 w-10 text-amber-200 mb-3" />
         <p className="text-sm font-semibold text-gray-500">Sin datos de vendedores</p>
         <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-          Corre el SQL de migración y<br />el script de seed para activar.
+          Asigna un vendedor al registrar ventas<br />para ver el ranking aquí.
         </p>
       </div>
     );
   }
 
-  const top = ranking[0];
-  const topMetaPct = top.meta > 0 ? Math.min((top.total / top.meta) * 100, 150) : 0;
+  const top       = ranking[0];
+  const topPct    = top.meta > 0 ? (top.total / top.meta) * 100 : 0;
+  const topSuperada = topPct >= 100;
+  const gradFrom  = topSuperada ? "from-emerald-500" : "from-amber-400";
+  const gradTo    = topSuperada ? "to-teal-600"      : "to-orange-500";
 
   return (
     <div className="space-y-2.5">
-      {/* Vendedor #1 — card destacado */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 p-4 text-white">
+      {/* #1 — card destacado */}
+      <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${gradFrom} ${gradTo} p-4 text-white`}>
         <Star className="absolute -top-3 -right-3 h-20 w-20 text-white/10 rotate-12" fill="currentColor" />
         <div className="flex items-start gap-3 mb-3">
-          <span className="text-2xl flex-shrink-0">🏆</span>
+          <span className="text-2xl flex-shrink-0">{topSuperada ? "🎉" : "🏆"}</span>
           <div className="min-w-0">
-            <p className="text-[10px] font-medium text-white/70 uppercase tracking-wider">Vendedor estrella</p>
+            <p className="text-[10px] font-medium text-white/70 uppercase tracking-wider">
+              {topSuperada ? "¡Meta superada!" : "Vendedor estrella"}
+            </p>
             <p className="text-base font-bold leading-tight truncate">{top.nombre}</p>
           </div>
         </div>
@@ -231,43 +274,19 @@ function RankingVendedores({ ranking }: { ranking: Vendedor[] }) {
           </div>
           <div className="rounded-xl bg-white/20 p-2.5">
             <p className="text-[9px] text-white/70 uppercase tracking-wide">% de meta</p>
-            <p className="text-base font-bold" style={{ fontFamily: "var(--font-syne)" }}>{topMetaPct.toFixed(0)}%</p>
+            <p className="text-base font-bold" style={{ fontFamily: "var(--font-syne)" }}>{topPct.toFixed(0)}%</p>
           </div>
         </div>
         <div className="h-1.5 w-full rounded-full bg-white/20 mb-1.5">
-          <div
-            className="h-1.5 rounded-full bg-white/80 transition-all duration-500"
-            style={{ width: `${Math.min(topMetaPct, 100)}%` }}
-          />
+          <div className="h-1.5 rounded-full bg-white/80 transition-all duration-500" style={{ width: `${Math.min(topPct, 100)}%` }} />
         </div>
         <p className="text-[10px] text-white/60">{top.count} ventas · meta {fmtK(top.meta)}/mes</p>
       </div>
 
       {/* #2 en adelante */}
-      {ranking.slice(1).map((v, idx) => {
-        const metaPct = v.meta > 0 ? Math.min((v.total / v.meta) * 100, 100) : 0;
-        const rankMedal = idx === 0 ? "🥈" : idx === 1 ? "🥉" : null;
-        return (
-          <div key={v.rank} className={`flex items-center gap-3 rounded-xl p-3 ${VEND_BG[idx] ?? "bg-gray-50"}`}>
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center text-lg">
-              {rankMedal ?? <span className="text-sm font-bold text-gray-400">{v.rank}</span>}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-semibold text-gray-800 truncate">{v.nombre}</p>
-                <p className="text-xs font-bold text-gray-700 flex-shrink-0 ml-2">{fmtK(v.total)}</p>
-              </div>
-              <div className="h-1.5 w-full rounded-full bg-white/60">
-                <div
-                  className={`h-1.5 rounded-full transition-all ${VEND_BAR[idx] ?? "bg-gray-200"}`}
-                  style={{ width: `${metaPct}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-gray-400 mt-0.5">{metaPct.toFixed(0)}% de meta · {v.count} ventas</p>
-            </div>
-          </div>
-        );
-      })}
+      {ranking.slice(1).map((v, idx) => (
+        <VendedorRow key={v.rank} v={v} medal={idx === 0 ? "🥈" : idx === 1 ? "🥉" : undefined} />
+      ))}
     </div>
   );
 }
@@ -324,8 +343,6 @@ export default function ComercialKPIs() {
   const faltaMeta  = Math.max(META_COMERCIAL - total, 0);
   const pctMeta    = Math.min(Math.round((total / META_COMERCIAL) * 100), 100);
   const pctVendido = esMes ? pctMeta : (proyeccion > 0 ? Math.min(Math.round((total / proyeccion) * 100), 100) : 0);
-  const maxProd = topProductos[0]?.total ?? 1;
-  const maxCli  = topClientes[0]?.total  ?? 1;
   const pLabel  = periodoLabel(periodo);
 
   const dimmed = loading && !!data ? " opacity-50 pointer-events-none" : "";
@@ -400,7 +417,7 @@ export default function ComercialKPIs() {
                 </div>
                 {topProductos.length === 0 ? <p className="text-sm text-gray-300 text-center py-6">Sin ventas en este periodo.</p> : (
                   <div className="space-y-2">
-                    {topProductos.slice(0, 4).map((p, i) => <LeaderRow key={i} rank={i+1} nombre={p.nombre} total={p.total} maxTotal={maxProd} sub={`${p.unidades} unidades`} />)}
+                    {topProductos.slice(0, 4).map((p, i) => <LeaderRow key={i} rank={i+1} nombre={p.nombre} total={p.total} totalGeneral={total} sub={`${p.unidades} unidades`} />)}
                   </div>
                 )}
               </div>
@@ -412,7 +429,7 @@ export default function ComercialKPIs() {
                 </div>
                 {topClientes.length === 0 ? <p className="text-sm text-gray-300 text-center py-6">Sin ventas en este periodo.</p> : (
                   <div className="space-y-2">
-                    {topClientes.slice(0, 4).map((c, i) => <LeaderRow key={i} rank={i+1} nombre={c.nombre} total={c.total} maxTotal={maxCli} />)}
+                    {topClientes.slice(0, 4).map((c, i) => <LeaderRow key={i} rank={i+1} nombre={c.nombre} total={c.total} totalGeneral={total} />)}
                   </div>
                 )}
                 <div className="mt-3 flex items-center justify-between rounded-xl bg-gray-50 px-4 py-2.5">
