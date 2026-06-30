@@ -12,8 +12,9 @@ import {
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-type Producto = { id: number; nombre: string; costo_proveedor: number; precio_venta: number };
-type Cliente  = { id: number; nombre: string };
+type Producto  = { id: number; nombre: string; costo_proveedor: number; precio_venta: number };
+type Cliente   = { id: number; nombre: string };
+type Vendedor  = { id: number; nombre: string };
 type Tab      = "manual" | "masiva";
 type TabManual = "merma" | "venta";
 type TablaDest = "mermas" | "ventas";
@@ -33,11 +34,12 @@ const CAMPOS = {
     { key: "costo_perdida",    label: "Costo de pérdida",   req: false, hint: "Se calcula si está vacío"  },
   ],
   ventas: [
-    { key: "cliente",      label: "Cliente",        req: true,  hint: "Nombre o ID"         },
-    { key: "producto",     label: "Producto",       req: true,  hint: "Nombre o ID"         },
-    { key: "fecha_venta",  label: "Fecha de venta", req: false, hint: "YYYY-MM-DD HH:MM:SS" },
-    { key: "cantidad",     label: "Cantidad",       req: true,  hint: "Número entero"       },
-    { key: "monto_total",  label: "Monto total",    req: true,  hint: "Número decimal MXN"  },
+    { key: "cliente",      label: "Cliente",        req: true,  hint: "Nombre o ID"              },
+    { key: "producto",     label: "Producto",       req: true,  hint: "Nombre o ID"              },
+    { key: "vendedor",     label: "Vendedor",       req: false, hint: "Nombre o ID (opcional)"   },
+    { key: "fecha_venta",  label: "Fecha de venta", req: false, hint: "YYYY-MM-DD HH:MM:SS"      },
+    { key: "cantidad",     label: "Cantidad",       req: true,  hint: "Número entero"            },
+    { key: "monto_total",  label: "Monto total",    req: true,  hint: "Número decimal MXN"       },
   ],
 };
 
@@ -66,7 +68,7 @@ function Toast({ t, onClose }: { t: ToastState; onClose: () => void }) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function CentroCargar({ productos, clientes }: { productos: Producto[]; clientes: Cliente[] }) {
+export default function CentroCargar({ productos, clientes, vendedores }: { productos: Producto[]; clientes: Cliente[]; vendedores: Vendedor[] }) {
   const router = useRouter();
   const { refresh } = useDashboard();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -123,6 +125,7 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
 
   // ── Estado: Captura Manual Ventas ────────────────────────────────────────
   const [clienteId,    setClienteId]    = useState("");
+  const [vendedorId,   setVendedorId]   = useState("");
   const [ventaProdId,  setVentaProdId]  = useState("");
   const [ventaCantidad,setVentaCantidad]= useState("");
   const [ventaMonto,   setVentaMonto]   = useState("");
@@ -148,7 +151,7 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
       const res = await fetch("/api/ventas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cliente_id: Number(clienteId), producto_id: Number(ventaProdId), fecha_venta: `${fechaVenta}T${new Date().toTimeString().slice(0, 8)}`, cantidad: Number(ventaCantidad), monto_total: monto }),
+        body: JSON.stringify({ cliente_id: Number(clienteId), producto_id: Number(ventaProdId), fecha_venta: `${fechaVenta}T${new Date().toTimeString().slice(0, 8)}`, cantidad: Number(ventaCantidad), monto_total: monto, ...(vendedorId ? { vendedor_id: Number(vendedorId) } : {}) }),
       });
       const { error } = await res.json();
       if (error) throw new Error(error);
@@ -163,7 +166,7 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
         body: JSON.stringify({ monto, cliente: clienteNombre, producto: prodNombre }),
       }).catch(() => {});
 
-      setClienteId(""); setVentaProdId(""); setVentaCantidad(""); setVentaMonto(""); setMontoManual(false);
+      setClienteId(""); setVendedorId(""); setVentaProdId(""); setVentaCantidad(""); setVentaMonto(""); setMontoManual(false);
       setFechaVenta(new Date().toISOString().slice(0, 10));
       refresh();
       router.refresh();
@@ -196,6 +199,13 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
     if (byId) return byId.id;
     const lower = s.toLowerCase();
     return clientes.find(c => c.nombre.toLowerCase().includes(lower) || lower.includes(c.nombre.toLowerCase()))?.id ?? null;
+  }
+  function resolveVendedor(val: string): number | null {
+    const s = String(val ?? "").trim();
+    const byId = vendedores.find(v => String(v.id) === s);
+    if (byId) return byId.id;
+    const lower = s.toLowerCase();
+    return vendedores.find(v => v.nombre.toLowerCase().includes(lower))?.id ?? null;
   }
 
   async function processFile(file: File) {
@@ -293,6 +303,7 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
         for (const row of parsed.rows) {
           const pid   = mapping.producto ? resolveProducto(row[mapping.producto] ?? "") : null;
           const cid   = mapping.cliente  ? resolveCliente(row[mapping.cliente] ?? "")   : null;
+          const vid   = mapping.vendedor ? resolveVendedor(row[mapping.vendedor] ?? "") : null;
           const cant  = Number(mapping.cantidad   ? row[mapping.cantidad]   : 0);
           const monto = Number(mapping.monto_total ? row[mapping.monto_total] : 0);
 
@@ -305,6 +316,7 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
                            ? String(row[mapping.fecha_venta]) : new Date().toISOString().slice(0, 19),
             cantidad:    cant,
             monto_total: monto,
+            ...(vid ? { vendedor_id: vid } : {}),
           });
         }
 
@@ -553,6 +565,25 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
                   <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 </div>
               </div>
+
+              {/* Vendedor */}
+              {vendedores.length > 0 && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                    Vendedor <span className="text-gray-400 font-normal">(opcional)</span>
+                  </label>
+                  <div className="relative">
+                    <select value={vendedorId} onChange={e => setVendedorId(e.target.value)}
+                      className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all pr-9">
+                      <option value="">— Sin asignar —</option>
+                      {vendedores.map(v => (
+                        <option key={v.id} value={v.id}>{v.nombre}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  </div>
+                </div>
+              )}
 
               {/* Producto */}
               <div>

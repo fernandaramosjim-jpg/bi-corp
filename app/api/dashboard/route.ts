@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
     { data: vendedoresRows },
     { data: productosBasic },
     { data: clientesBasic },
+    { data: vendedoresBasic },
   ] = await Promise.all([
     sb.from("mermas").select("id,producto_id,fecha_merma,cantidad_perdida,motivo,costo_perdida,productos(nombre)").order("fecha_merma", { ascending: false }),
     sb.from("ventas").select("monto_total,cantidad,cliente_id,producto_id,fecha_venta,vendedor_id,clientes(nombre),productos(nombre)").gte("fecha_venta", primer).lte("fecha_venta", ultimo),
@@ -49,6 +50,7 @@ export async function GET(req: NextRequest) {
     sb.from("ventas").select("monto_total,vendedor_id,vendedores(nombre,meta_mensual)").gte("fecha_venta", primer).lte("fecha_venta", ultimo).not("vendedor_id", "is", null),
     sb.from("productos").select("id,nombre,precio_venta,costo_proveedor").order("nombre"),
     sb.from("clientes").select("id,nombre").order("nombre"),
+    sb.from("vendedores").select("id,nombre").order("nombre"),
   ]);
 
   // Mermas
@@ -181,7 +183,8 @@ export async function GET(req: NextRequest) {
     pareto,
     ventasFecha,
     rankingVendedores,
-    productos:        productosBasic ?? [],
-    clientes:         clientesBasic  ?? [],
+    productos:        productosBasic  ?? [],
+    clientes:         clientesBasic   ?? [],
+    vendedores:       vendedoresBasic ?? [],
   });
 }

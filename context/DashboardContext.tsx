@@ -30,6 +30,7 @@ type Ctx = {
   refresh: () => void;
   productos: { id: number; nombre: string; costo_proveedor: number; precio_venta: number }[];
   clientes: { id: number; nombre: string }[];
+  vendedores: { id: number; nombre: string }[];
 };
 
 const DashboardContext = createContext<Ctx | null>(null);
@@ -54,7 +55,7 @@ function LoadingScreen() {
   );
 }
 
-async function fetchDashboard(periodo: string): Promise<DashboardData & { productos: any[]; clientes: any[] }> {
+async function fetchDashboard(periodo: string): Promise<DashboardData & { productos: any[]; clientes: any[]; vendedores: any[] }> {
   const rango = getPeriodoRange(periodo);
   const params = new URLSearchParams();
   if (rango?.from) params.set("from", rango.from);
@@ -68,17 +69,19 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [periodo, setPeriodo] = useState("mes_actual");
   const [cache, setCache]     = useState<DataCache>({});
   const [loading, setLoading] = useState(true);
-  const [productos, setProductos] = useState<any[]>([]);
-  const [clientes,  setClientes]  = useState<any[]>([]);
+  const [productos,   setProductos]   = useState<any[]>([]);
+  const [clientes,    setClientes]    = useState<any[]>([]);
+  const [vendedores,  setVendedores]  = useState<any[]>([]);
 
   // Carga inicial: fetch del período actual
   useEffect(() => {
     fetchDashboard(periodo)
       .then(json => {
-        const { productos: prods, clientes: clis, ...data } = json;
+        const { productos: prods, clientes: clis, vendedores: vends, ...data } = json;
         setCache(prev => ({ ...prev, [periodo]: data }));
         setProductos(prods);
         setClientes(clis);
+        setVendedores(vends ?? []);
         setLoading(false);
 
         // Pre-carga el resto de períodos en segundo plano
@@ -112,15 +115,16 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   function refresh() {
     fetchDashboard(periodo).then(json => {
-      const { productos: prods, clientes: clis, ...d } = json;
+      const { productos: prods, clientes: clis, vendedores: vends, ...d } = json;
       setCache(prev => ({ ...prev, [periodo]: d }));
       setProductos(prods);
       setClientes(clis);
+      setVendedores(vends ?? []);
     }).catch(() => {});
   }
 
   return (
-    <DashboardContext.Provider value={{ periodo, setPeriodo, data, loading, refresh, productos, clientes }}>
+    <DashboardContext.Provider value={{ periodo, setPeriodo, data, loading, refresh, productos, clientes, vendedores }}>
       {loading && <LoadingScreen />}
       <div className={loading ? "invisible" : undefined}>
         {children}

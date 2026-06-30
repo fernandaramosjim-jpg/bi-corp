@@ -5,7 +5,7 @@ import CentroCargar from "./CentroCargar";
 import { FolderUp } from "lucide-react";
 
 export default function CargaPage() {
-  const { productos, clientes } = useDashboard();
+  const { productos, clientes, vendedores } = useDashboard();
 
   return (
     <div className="px-6 py-8 lg:px-10">
@@ -34,7 +34,7 @@ export default function CargaPage() {
         </div>
       </div>
 
-      <CentroCargar productos={productos} clientes={clientes} />
+      <CentroCargar productos={productos} clientes={clientes} vendedores={vendedores} />
     </div>
   );
 }
