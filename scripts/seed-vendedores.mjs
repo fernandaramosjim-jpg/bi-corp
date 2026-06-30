@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 // Requiere Node 20.6+ — pasar con: node --env-file=.env.local scripts/seed-vendedores.mjs
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
 // ── 1. Limpiar vendedores previos (idempotente) ───────────────────────────────

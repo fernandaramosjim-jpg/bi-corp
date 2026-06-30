@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 
-const META_MES = 200_000;
+const META_MES = 500_000;
 
 function resolveRango(from?: string | null, to?: string | null) {
   if (from && to) return { primer: from, ultimo: to };

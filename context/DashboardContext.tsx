@@ -88,7 +88,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         const otros = PERIODOS.map(p => p.key).filter(k => k !== periodo);
         otros.forEach(key => {
           fetchDashboard(key).then(j => {
-            const { productos: _, clientes: __, ...d } = j;
+            const { productos: _, clientes: __, vendedores: _v, ...d } = j;
             setCache(prev => ({ ...prev, [key]: d }));
           }).catch(() => {});
         });
@@ -105,7 +105,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     if (cache[periodo] || loading) return;
     fetchDashboard(periodo)
       .then(json => {
-        const { productos: _, clientes: __, ...data } = json;
+        const { productos: _, clientes: __, vendedores: _v, ...data } = json;
         setCache(prev => ({ ...prev, [periodo]: data }));
       })
       .catch(() => {});
