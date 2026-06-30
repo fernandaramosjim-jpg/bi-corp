@@ -163,8 +163,8 @@ type ToolInput = Record<string, unknown>;
 
 async function runTool(name: string, input: ToolInput): Promise<string> {
   const sb = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!
   );
 
   try {
