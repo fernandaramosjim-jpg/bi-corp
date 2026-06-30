@@ -240,6 +240,7 @@ export default function SemaforoKPIs() {
   const unidades    = data?.ventasMes.unidades ?? 0;
   const desabasto   = data?.desabasto ?? [];
   const enRiesgo    = data?.enRiesgo30 ?? [];
+  const enRiesgo35  = data?.enRiesgo35 ?? [];
   const ventasFecha = data?.ventasFecha ?? [];
 
   const pctMeta   = Math.min(Math.round((totalVentas / META_COMERCIAL) * 100), 999);
@@ -296,7 +297,7 @@ export default function SemaforoKPIs() {
                     : "border-amber-200 bg-amber-50 text-amber-700"
                 }`}>
                 <Wallet className="h-3.5 w-3.5" />
-                {enRiesgo.length} cliente{enRiesgo.length > 1 ? "s" : ""} inactivo{enRiesgo.length > 1 ? "s" : ""}
+                {enRiesgo35.length} cliente{enRiesgo35.length > 1 ? "s" : ""} inactivo{enRiesgo35.length > 1 ? "s" : ""}
               </Link>
             )}
           </div>
@@ -353,7 +354,7 @@ export default function SemaforoKPIs() {
               valor={desabasto.length === 0 ? "Sin alertas" : `${desabasto.length} producto${desabasto.length > 1 ? "s" : ""}`}
               detalle={desabasto.length === 0 ? "Todos tienen stock suficiente" : "Stock igual o por debajo del mínimo"}
               icon={Package}>
-              {(desabasto as any[]).slice(0, 4).map((p) => (
+              {(desabasto as any[]).slice(0, 5).map((p) => (
                 <div key={p.id} className="flex items-center justify-between">
                   <span className="text-xs text-gray-700 truncate max-w-[55%]">{p.nombre}</span>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -362,6 +363,9 @@ export default function SemaforoKPIs() {
                   </div>
                 </div>
               ))}
+              {desabasto.length > 5 && (
+                <p className="text-[10px] text-gray-400 pt-1">+ {desabasto.length - 5} productos más con stock bajo</p>
+              )}
             </SemaforoCard>
 
             <SemaforoCard id="clientes" nivel={nivelClientes} titulo="Clientes sin compra +30 días"
