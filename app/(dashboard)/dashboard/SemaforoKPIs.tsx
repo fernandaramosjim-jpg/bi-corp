@@ -266,10 +266,10 @@ export default function SemaforoKPIs() {
           <p className="text-sm text-gray-400 capitalize">Semáforo de control · {pLabel}</p>
         </div>
         {!!data && (alertasActivas > 0 ? (
-          <div className="flex flex-wrap gap-2 justify-end">
+          <div className="flex gap-2 overflow-x-auto pb-0.5 sm:justify-end [&::-webkit-scrollbar]:hidden">
             {nivelMerma !== "verde" && (
               <Link href="/dashboard#mermas"
-                className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80 ${
+                className={`flex flex-shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80 ${
                   nivelMerma === "rojo"
                     ? "border-rose-200 bg-rose-50 text-rose-700"
                     : "border-amber-200 bg-amber-50 text-amber-700"
@@ -280,7 +280,7 @@ export default function SemaforoKPIs() {
             )}
             {nivelDesabasto !== "verde" && (
               <Link href="/dashboard#desabasto"
-                className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80 ${
+                className={`flex flex-shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80 ${
                   nivelDesabasto === "rojo"
                     ? "border-rose-200 bg-rose-50 text-rose-700"
                     : "border-amber-200 bg-amber-50 text-amber-700"
@@ -291,7 +291,7 @@ export default function SemaforoKPIs() {
             )}
             {nivelClientes !== "verde" && (
               <Link href="/retencion#churn"
-                className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80 ${
+                className={`flex flex-shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80 ${
                   nivelClientes === "rojo"
                     ? "border-rose-200 bg-rose-50 text-rose-700"
                     : "border-amber-200 bg-amber-50 text-amber-700"
