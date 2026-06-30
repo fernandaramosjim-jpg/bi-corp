@@ -4,7 +4,9 @@ import { useEffect } from "react";
 import { periodoLabel, diasEnRango, getPeriodoRange } from "@/lib/date-range";
 import { DateFilter } from "@/components/DateFilter";
 import { useDashboard } from "@/context/DashboardContext";
-import { Zap, Package, Users, TrendingUp, Star } from "lucide-react";
+import { Zap, Package, Users, TrendingUp, Star, Target } from "lucide-react";
+
+const META_COMERCIAL = 500_000;
 
 function fmtK(n: number) {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
@@ -319,7 +321,9 @@ export default function ComercialKPIs() {
   const diasRestantes = esMes ? diasDelMes - diaActual : 0;
   const tasaDiaria = diasEfectivos > 0 ? total / diasEfectivos : 0;
   const proyeccion = esMes ? tasaDiaria * diasDelMes : total;
-  const pctVendido = proyeccion > 0 ? Math.round((total / proyeccion) * 100) : 0;
+  const faltaMeta  = Math.max(META_COMERCIAL - total, 0);
+  const pctMeta    = Math.min(Math.round((total / META_COMERCIAL) * 100), 100);
+  const pctVendido = esMes ? pctMeta : (proyeccion > 0 ? Math.min(Math.round((total / proyeccion) * 100), 100) : 0);
   const maxProd = topProductos[0]?.total ?? 1;
   const maxCli  = topClientes[0]?.total  ?? 1;
   const pLabel  = periodoLabel(periodo);
@@ -349,14 +353,14 @@ export default function ComercialKPIs() {
               <div className="flex flex-col items-center mb-6">
                 <Velocimetro pct={pctVendido} />
                 <p className={`-mt-1 text-4xl font-bold ${pctVendido >= 90 ? "text-emerald-600" : pctVendido >= 65 ? "text-indigo-600" : pctVendido >= 40 ? "text-amber-600" : "text-rose-600"}`} style={{ fontFamily: "var(--font-syne)" }}>{pctVendido}%</p>
-                <p className="text-sm text-gray-400 mt-1">del ritmo esperado</p>
+                <p className="text-sm text-gray-400 mt-1">{esMes ? "de la meta mensual" : "del ritmo esperado"}</p>
               </div>
               <div className="grid grid-cols-2 gap-3 mb-4">
                 {[
-                  { label: "Promedio por día",   value: fmtK(tasaDiaria) },
-                  { label: esMes ? "Días restantes" : "Días analizados", value: esMes ? `${diasRestantes} días` : `${diasEfectivos} días` },
                   { label: "Total acumulado",    value: fmtK(total) },
-                  { label: esMes ? "Proyección cierre" : "Total periodo", value: fmtK(proyeccion) },
+                  { label: esMes ? "Falta para meta" : "Días analizados", value: esMes ? fmtK(faltaMeta) : `${diasEfectivos} días` },
+                  { label: "Promedio por día",   value: fmtK(tasaDiaria) },
+                  { label: esMes ? "Días restantes" : "Proyección", value: esMes ? `${diasRestantes} días` : fmtK(proyeccion) },
                 ].map(item => (
                   <div key={item.label} className="rounded-xl bg-gray-50 p-3">
                     <p className="text-[10px] uppercase tracking-wide text-gray-400">{item.label}</p>
@@ -364,8 +368,26 @@ export default function ComercialKPIs() {
                   </div>
                 ))}
               </div>
+              {esMes && (
+                <div className="mb-3">
+                  <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                    <span>{fmt(total)} vendidos</span>
+                    <span>Meta: {fmt(META_COMERCIAL)}</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+                    <div className={`h-2 rounded-full transition-all duration-700 ${pctMeta >= 100 ? "bg-emerald-500" : pctMeta >= 70 ? "bg-indigo-500" : pctMeta >= 40 ? "bg-amber-400" : "bg-rose-400"}`}
+                      style={{ width: `${pctMeta}%` }} />
+                  </div>
+                </div>
+              )}
               <div className={`rounded-xl px-4 py-3 text-sm font-medium ${pctVendido >= 100 ? "bg-emerald-50 text-emerald-700" : pctVendido >= 70 ? "bg-indigo-50 text-indigo-700" : "bg-rose-50 text-rose-700"}`}>
-                {pctVendido >= 100 ? `🎉 Vas por delante. Proyectas ${fmtK(proyeccion)} al cierre.` : pctVendido >= 70 ? `⚡ Buen ritmo. Necesitas ${fmtK(Math.max((proyeccion-total)/Math.max(diasRestantes,1),0))}/día.` : `🚨 Ritmo bajo. Acelera a ${fmtK(Math.max((proyeccion-total)/Math.max(diasRestantes,1),0))}/día.`}
+                {esMes
+                  ? pctMeta >= 100 ? `🎉 ¡Meta alcanzada! ${fmt(total)} vendidos este mes.`
+                    : pctMeta >= 70 ? `⚡ Buen ritmo. Faltan ${fmtK(faltaMeta)} — necesitas ${fmtK(faltaMeta / Math.max(diasRestantes, 1))}/día.`
+                    : `🚨 Ritmo bajo. Faltan ${fmtK(faltaMeta)} para llegar a ${fmt(META_COMERCIAL)}.`
+                  : pctVendido >= 100 ? `🎉 Vas por delante. Proyectas ${fmtK(proyeccion)} al cierre.`
+                    : `⚡ Necesitas ${fmtK(Math.max((proyeccion - total) / Math.max(diasRestantes, 1), 0))}/día para cerrar fuerte.`
+                }
               </div>
             </section>
 
