@@ -224,10 +224,27 @@ export function NotificationBell({ variant = "sidebar" }: { variant?: "sidebar" 
               <p className="text-xs text-gray-400 mt-1">Sin alertas activas en este periodo</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50 max-h-[440px] overflow-y-auto">
-              {notifs.map((n) => (
-                <NotifRow key={n.id} n={n} onClose={() => setOpen(false)} />
-              ))}
+            <div className="max-h-[440px] overflow-y-auto">
+              {noVistas.length > 0 && (
+                <>
+                  <p className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">Nuevas</p>
+                  <div className="divide-y divide-gray-50">
+                    {noVistas.map((n) => (
+                      <NotifRow key={n.id} n={n} onClose={() => setOpen(false)} />
+                    ))}
+                  </div>
+                </>
+              )}
+              {noVistas.length < notifs.length && (
+                <>
+                  <p className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-gray-300">Vistas hoy</p>
+                  <div className="divide-y divide-gray-50 opacity-50">
+                    {notifs.filter((n) => vistas.has(n.id)).map((n) => (
+                      <NotifRow key={n.id} n={n} onClose={() => setOpen(false)} />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
