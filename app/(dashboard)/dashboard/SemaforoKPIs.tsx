@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
@@ -251,8 +251,11 @@ export default function SemaforoKPIs() {
   const nivelClientes:  Nivel = enRiesgo.length === 0 ? "verde" : enRiesgo.length <= 2 ? "amarillo" : "rojo";
   const alertasActivas  = [nivelMerma, nivelDesabasto, nivelClientes].filter(n => n !== "verde").length;
 
-  const hora   = new Date().getHours();
-  const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
+  const [saludo, setSaludo] = useState("Hola");
+  useEffect(() => {
+    const hora = new Date().getHours();
+    setSaludo(hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches");
+  }, []);
   const pLabel = periodoLabel(periodo);
 
   return (
@@ -404,7 +407,7 @@ export default function SemaforoKPIs() {
           </div>
 
           <footer className="mt-4 text-center text-xs text-gray-300">
-            © {new Date().getFullYear()} BI-Corp · Datos en tiempo real vía Supabase
+            © <span suppressHydrationWarning>{new Date().getFullYear()}</span> BI-Corp · Datos en tiempo real vía Supabase
           </footer>
         </div>
       )}

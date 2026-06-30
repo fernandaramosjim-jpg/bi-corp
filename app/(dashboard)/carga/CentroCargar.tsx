@@ -451,7 +451,7 @@ export default function CentroCargar({ productos, clientes, vendedores }: { prod
                   Fecha <span className="text-rose-500">*</span>
                 </label>
                 <input type="date" value={fechaMerma}
-                  max={new Date().toISOString().slice(0, 10)}
+                  max={new Date().toISOString().slice(0, 10)} suppressHydrationWarning
                   onChange={e => setFechaMerma(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all" />
               </div>
@@ -610,7 +610,7 @@ export default function CentroCargar({ productos, clientes, vendedores }: { prod
                   Fecha <span className="text-rose-500">*</span>
                 </label>
                 <input type="date" value={fechaVenta}
-                  max={new Date().toISOString().slice(0, 10)}
+                  max={new Date().toISOString().slice(0, 10)} suppressHydrationWarning
                   onChange={e => setFechaVenta(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all" />
               </div>

@@ -317,7 +317,7 @@ export default function MargenKPIs() {
             </section>
           </div>
 
-          <footer className="mt-8 text-center text-xs text-gray-300">© {new Date().getFullYear()} BI-Corp · Margen y rentabilidad en tiempo real</footer>
+          <footer className="mt-8 text-center text-xs text-gray-300">© <span suppressHydrationWarning>{new Date().getFullYear()}</span> BI-Corp · Margen y rentabilidad en tiempo real</footer>
         </div>
       )}
     </div>
