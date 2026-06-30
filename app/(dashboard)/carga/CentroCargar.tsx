@@ -151,6 +151,15 @@ export default function CentroCargar({ productos, clientes }: { productos: Produ
       if (error) throw new Error(error);
 
       notify("success", "¡Venta registrada!", `$${monto.toLocaleString("es-MX")} MXN guardados correctamente.`);
+
+      const clienteNombre = clientes.find(c => String(c.id) === clienteId)?.nombre;
+      const prodNombre    = productos.find(p => String(p.id) === ventaProdId)?.nombre;
+      fetch("/api/push/venta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ monto, cliente: clienteNombre, producto: prodNombre }),
+      }).catch(() => {});
+
       setClienteId(""); setVentaProdId(""); setVentaCantidad(""); setVentaMonto(""); setMontoManual(false);
       setFechaVenta(new Date().toISOString().slice(0, 10));
       router.refresh();
